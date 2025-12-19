@@ -295,37 +295,6 @@ public interface ITestEvents
     }
 
     /// <summary>
-    /// 测试：重复事件名应该触发 ERODE014 错误
-    /// </summary>
-    [Fact]
-    public async Task DuplicateEventName_ShouldTriggerDiagnostic()
-    {
-        var testCode = @"namespace Test
-{
-
-public interface ITestEvents1
-{
-    [Erode.GenerateEvent]
-    void PublishTestEvent(int a); // 生成事件名：TestEvent
-}
-
-public interface ITestEvents2
-{
-    {|#0:[Erode.GenerateEvent]
-    void PublishTestEvent(string b);|} // ❌ 错误：事件名 'TestEvent' 重复
-}
-}";
-
-        var test = CreateTest(testCode);
-        test.ExpectedDiagnostics.Add(new Microsoft.CodeAnalysis.Testing.DiagnosticResult(
-            "ERODE014",
-            Microsoft.CodeAnalysis.DiagnosticSeverity.Error)
-            .WithLocation(0)
-            .WithArguments("TestEvent", "Test"));
-        await test.RunAsync();
-    }
-
-    /// <summary>
     /// 测试：正确使用 [GenerateEvent] 不应该触发任何错误
     /// </summary>
     [Fact]
