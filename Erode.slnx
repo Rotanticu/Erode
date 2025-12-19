@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Erode.Generator/Erode.Generator.csproj" />
+  <Project Path="Erode/Erode.csproj" />
+  <Project Path="Erode.Tests/Erode.Tests.csproj" />
+</Solution>
