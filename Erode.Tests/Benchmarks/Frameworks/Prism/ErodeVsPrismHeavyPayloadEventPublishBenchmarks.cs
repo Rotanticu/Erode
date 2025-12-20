@@ -1,3 +1,5 @@
+using Erode.Tests.Benchmarks.Frameworks.EventTypes;
+
 namespace Erode.Tests.Benchmarks.Frameworks.Prism;
 
 [SimpleJob(RuntimeMoniker.Net80)]
@@ -45,32 +47,10 @@ public class ErodeVsPrismHeavyPayloadEventPublishBenchmarks : BenchmarkBase
 
     private void WarmupErode()
     {
-        var warmupEvent = new Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent(
-            TestEventId,
-            DateTime.UtcNow.Ticks,
-            1.5,
-            2.5,
-            DateTime.UtcNow,
-            "TestName",
-            "TestDescription",
-            "TestCategory",
-            TestTags,
-            TestMetadata,
-            TestPlayer,
-            1,
-            1.0f,
-            2.0f,
-            3.0f,
-            true,
-            false,
-            true,
-            false,
-            true
-        );
-        var warmupToken = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent>.Subscribe(HandlerHelpers.CreateHeavyPayloadEventHandler(0));
+        var warmupToken = BenchmarkEvents.SubscribeHeavyPayloadEvent(HandlerHelpers.CreateHeavyPayloadEventHandler(0));
         for (int i = 0; i < 100; i++)
         {
-            EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent>.Publish(warmupEvent);
+            BenchmarkEvents.PublishHeavyPayloadEvent(TestEventId, DateTime.UtcNow.Ticks, 1.5, 2.5, DateTime.UtcNow, "TestName", "TestDescription", "TestCategory", TestTags, TestMetadata, TestPlayer, 1, 1.0f, 2.0f, 3.0f, true, false, true, false, true);
         }
         warmupToken.Dispose();
         TestCleanupHelper.CleanupAll();
@@ -82,7 +62,7 @@ public class ErodeVsPrismHeavyPayloadEventPublishBenchmarks : BenchmarkBase
         _erodeTokens = new SubscriptionToken[SubscriberCount];
         for (int i = 0; i < SubscriberCount; i++)
         {
-            _erodeTokens[i] = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent>.Subscribe(HandlerHelpers.CreateHeavyPayloadEventHandler(i));
+            _erodeTokens[i] = BenchmarkEvents.SubscribeHeavyPayloadMultiEvent(HandlerHelpers.CreateHeavyPayloadMultiEventHandler(i));
         }
 
         _eventAggregator = new global::Prism.Events.EventAggregator();
@@ -112,29 +92,7 @@ public class ErodeVsPrismHeavyPayloadEventPublishBenchmarks : BenchmarkBase
     public long Publish_MultiSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent(
-            TestEventId,
-            DateTime.UtcNow.Ticks,
-            1.5,
-            2.5,
-            DateTime.UtcNow,
-            "TestName",
-            "TestDescription",
-            "TestCategory",
-            TestTags,
-            TestMetadata,
-            TestPlayer,
-            1,
-            1.0f,
-            2.0f,
-            3.0f,
-            true,
-            false,
-            true,
-            false,
-            true
-        );
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent>.Publish(evt);
+        BenchmarkEvents.PublishHeavyPayloadMultiEvent(TestEventId, DateTime.UtcNow.Ticks, 1.5, 2.5, DateTime.UtcNow, "TestName", "TestDescription", "TestCategory", TestTags, TestMetadata, TestPlayer, 1, 1.0f, 2.0f, 3.0f, true, false, true, false, true);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -177,29 +135,7 @@ public class ErodeVsPrismHeavyPayloadEventPublishBenchmarks : BenchmarkBase
     public long Publish_NoSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent(
-            TestEventId,
-            DateTime.UtcNow.Ticks,
-            1.5,
-            2.5,
-            DateTime.UtcNow,
-            "TestName",
-            "TestDescription",
-            "TestCategory",
-            TestTags,
-            TestMetadata,
-            TestPlayer,
-            1,
-            1.0f,
-            2.0f,
-            3.0f,
-            true,
-            false,
-            true,
-            false,
-            true
-        );
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent>.Publish(evt);
+        BenchmarkEvents.PublishHeavyPayloadMultiEvent(TestEventId, DateTime.UtcNow.Ticks, 1.5, 2.5, DateTime.UtcNow, "TestName", "TestDescription", "TestCategory", TestTags, TestMetadata, TestPlayer, 1, 1.0f, 2.0f, 3.0f, true, false, true, false, true);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -242,30 +178,8 @@ public class ErodeVsPrismHeavyPayloadEventPublishBenchmarks : BenchmarkBase
     public long Publish_SingleSubscriber_Erode()
     {
         HandlerHelpers.ResetSink();
-        var token = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent>.Subscribe(HandlerHelpers.CreateHeavyPayloadEventHandler(0));
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent(
-            TestEventId,
-            DateTime.UtcNow.Ticks,
-            1.5,
-            2.5,
-            DateTime.UtcNow,
-            "TestName",
-            "TestDescription",
-            "TestCategory",
-            TestTags,
-            TestMetadata,
-            TestPlayer,
-            1,
-            1.0f,
-            2.0f,
-            3.0f,
-            true,
-            false,
-            true,
-            false,
-            true
-        );
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent>.Publish(evt);
+        var token = BenchmarkEvents.SubscribeHeavyPayloadSingleEvent(HandlerHelpers.CreateHeavyPayloadSingleEventHandler(0));
+        BenchmarkEvents.PublishHeavyPayloadSingleEvent(TestEventId, DateTime.UtcNow.Ticks, 1.5, 2.5, DateTime.UtcNow, "TestName", "TestDescription", "TestCategory", TestTags, TestMetadata, TestPlayer, 1, 1.0f, 2.0f, 3.0f, true, false, true, false, true);
         token.Dispose();
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);

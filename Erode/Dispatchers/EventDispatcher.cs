@@ -60,6 +60,13 @@ public sealed class EventDispatcher<TEvent> : IDispatcher
     // 写操作（Subscribe/Unsubscribe）的锁
     private static readonly object _writeLock = new();
 
+    /// <summary>
+    /// 专门给生成类或特定事件类使用的异常钩子。
+    /// 当此事件类型的 handler 抛出异常时，会先调用此委托，再调用全局的 EventDispatcher.OnException。
+    /// 参数：(事件对象, 出错的 handler 委托, 异常对象)
+    /// </summary>
+    public static System.Action<IEvent, System.Delegate, System.Exception>? LocalOnException;
+
     // 静态构造函数：自动注册当前类型的调度器实例到全局中心
     // 利用静态泛型类的特性，无需外部手动调用 RegisterDispatcher
     static EventDispatcher()
@@ -115,31 +122,22 @@ public sealed class EventDispatcher<TEvent> : IDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Publish(in TEvent eventData)
     {
-        PublishInternal(in eventData, null);
-    }
-
-    /// <summary>
-    /// 零 GC、零锁发布核心（带异常处理回调）。
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Publish(in TEvent eventData, System.Action<IEvent, System.Delegate, System.Exception>? onException)
-    {
-        PublishInternal(in eventData, onException);
+        PublishInternal(in eventData);
     }
 
     /// <summary>
     /// 内部发布方法（零 GC、零锁）
     /// 注意：即使某个 handler 抛异常，也会继续调用其他 handler
-    /// 异常通过 onException 回调转发，不在发布路径抛出，保证发布者逻辑的健壮性
+    /// 异常通过 LocalOnException 和全局 EventDispatcher.OnException 转发，不在发布路径抛出，保证发布者逻辑的健壮性
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void PublishInternal(in TEvent eventData, System.Action<IEvent, System.Delegate, System.Exception>? onException)
+    private static void PublishInternal(in TEvent eventData)
     {
         var span = _handlerArray.AsSpan();
         for (int i = 0; i < span.Length; i++)
         {
             // 关键：调用一个专门处理执行的方法
-            InvokeHandler(span[i], in eventData, onException);
+            InvokeHandler(span[i], in eventData);
         }
     }
 
@@ -149,7 +147,7 @@ public sealed class EventDispatcher<TEvent> : IDispatcher
     /// JIT 可以放心地把 i 放入寄存器，并彻底消除边界检查。
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)] // 尝试内联，如果内联失败反而对热点循环有利
-    private static void InvokeHandler(in HandlerEntry entry, in TEvent eventData, System.Action<IEvent, System.Delegate, System.Exception>? onException)
+    private static void InvokeHandler(in HandlerEntry entry, in TEvent eventData)
     {
         try
         {
@@ -157,7 +155,8 @@ public sealed class EventDispatcher<TEvent> : IDispatcher
         }
         catch (System.Exception ex)
         {
-            onException?.Invoke(eventData, entry.Handler, ex);
+            // 静态分发异常，0 运行时传参开销
+            LocalOnException?.Invoke(eventData, entry.Handler, ex);
             EventDispatcher.OnException?.Invoke(eventData, entry.Handler, ex);
         }
     }

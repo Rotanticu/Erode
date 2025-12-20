@@ -1,5 +1,6 @@
 using FluentAssertions;
 using System.Collections.Concurrent;
+using Erode.Tests.Helpers;
 
 namespace Erode.Tests.Unit;
 
@@ -9,10 +10,6 @@ namespace Erode.Tests.Unit;
 /// </summary>
 public class AsyncTests : TestBase
 {
-    /// <summary>
-    /// 用于异步测试的独立事件类型
-    /// </summary>
-    private readonly record struct AsyncTestEvent(int Value) : IEvent;
 
     [Fact]
     public async Task Publish_UsingTaskRun_ShouldWorkCorrectly()
@@ -20,14 +17,14 @@ public class AsyncTests : TestBase
         // Arrange
         var invoked = false;
         var handler = new InAction<AsyncTestEvent>((in AsyncTestEvent evt) => { invoked = true; });
-        var token = EventDispatcher<AsyncTestEvent>.Subscribe(handler);
+        var token = AsyncTestEvents.SubscribeAsyncTestEvent(handler);
 
         try
         {
             // Act - 用户使用 Task.Run 发布事件
             await Task.Run(() =>
             {
-                EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(42));
+                AsyncTestEvents.PublishAsyncTestEvent(42);
             });
 
             // Assert
@@ -48,7 +45,7 @@ public class AsyncTests : TestBase
         {
             Interlocked.Increment(ref invocationCount);
         });
-        var token = EventDispatcher<AsyncTestEvent>.Subscribe(handler);
+        var token = AsyncTestEvents.SubscribeAsyncTestEvent(handler);
 
         try
         {
@@ -59,7 +56,7 @@ public class AsyncTests : TestBase
                 var value = i;
                 tasks.Add(Task.Run(() =>
                 {
-                    EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(value));
+                    AsyncTestEvents.PublishAsyncTestEvent(value);
                 }));
             }
 
@@ -85,7 +82,7 @@ public class AsyncTests : TestBase
         SubscriptionToken token;
         await Task.Run(() =>
         {
-            token = EventDispatcher<AsyncTestEvent>.Subscribe(handler);
+            token = AsyncTestEvents.SubscribeAsyncTestEvent(handler);
         });
 
         // 需要重新获取 token，因为 await 后作用域变了
@@ -93,7 +90,7 @@ public class AsyncTests : TestBase
 
         try
         {
-            EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(42));
+            AsyncTestEvents.PublishAsyncTestEvent(42);
 
             // Assert
             invoked.Should().BeTrue();
@@ -113,7 +110,7 @@ public class AsyncTests : TestBase
         {
             Interlocked.Increment(ref invocationCount);
         });
-        var token = EventDispatcher<AsyncTestEvent>.Subscribe(handler);
+        var token = AsyncTestEvents.SubscribeAsyncTestEvent(handler);
 
         try
         {
@@ -125,7 +122,7 @@ public class AsyncTests : TestBase
                 var value = i;
                 tasks.Add(Task.Run(() =>
                 {
-                    EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(value));
+                    AsyncTestEvents.PublishAsyncTestEvent(value);
                 }));
             }
 
@@ -156,7 +153,7 @@ public class AsyncTests : TestBase
                 {
                     Interlocked.Increment(ref invocationCount);
                 });
-                tokens.Add(EventDispatcher<AsyncTestEvent>.Subscribe(handler));
+                tokens.Add(AsyncTestEvents.SubscribeAsyncTestEvent(handler));
             }
         });
 
@@ -165,7 +162,7 @@ public class AsyncTests : TestBase
             await subscribeTask; // 等待订阅完成
             for (int i = 0; i < 10; i++)
             {
-                EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(i));
+                AsyncTestEvents.PublishAsyncTestEvent(i);
                 await Task.Delay(1); // 模拟异步延迟
             }
         });
@@ -188,7 +185,7 @@ public class AsyncTests : TestBase
         // Arrange
         var invoked = false;
         var handler = new InAction<AsyncTestEvent>((in AsyncTestEvent evt) => { invoked = true; });
-        var token = EventDispatcher<AsyncTestEvent>.Subscribe(handler);
+        var token = AsyncTestEvents.SubscribeAsyncTestEvent(handler);
 
         // Act - 在异步上下文中退订
         await Task.Run(() =>
@@ -197,7 +194,7 @@ public class AsyncTests : TestBase
         });
 
         // 再次发布，应该不会触发
-        EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(42));
+        AsyncTestEvents.PublishAsyncTestEvent(42);
 
         // Assert
         invoked.Should().BeFalse();
@@ -218,27 +215,31 @@ public class AsyncTests : TestBase
             Interlocked.Increment(ref normalHandlerInvocations);
         });
 
-        var token1 = EventDispatcher<AsyncTestEvent>.Subscribe(exceptionHandler);
-        var token2 = EventDispatcher<AsyncTestEvent>.Subscribe(normalHandler);
+        var token1 = AsyncTestEvents.SubscribeAsyncTestEvent(exceptionHandler);
+        var token2 = AsyncTestEvents.SubscribeAsyncTestEvent(normalHandler);
 
         try
         {
             // 设置异常处理
             var originalOnException = EventDispatcher.OnException;
+            var originalLocalOnException = EventDispatcher<AsyncTestEvent>.LocalOnException;
+            
             EventDispatcher.OnException = (evt, handler, ex) =>
+            {
+                Interlocked.Increment(ref exceptionCount);
+            };
+            
+            EventDispatcher<AsyncTestEvent>.LocalOnException = (evt, handler, ex) =>
             {
                 Interlocked.Increment(ref exceptionCount);
             };
 
             try
             {
-                // Act - 在异步上下文中发布，使用带异常处理回调的 Publish
+                // Act - 在异步上下文中发布
                 await Task.Run(() =>
                 {
-                    EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(42), (evt, handler, ex) =>
-                    {
-                        Interlocked.Increment(ref exceptionCount);
-                    });
+                AsyncTestEvents.PublishAsyncTestEvent(42);
                 });
 
                 // Assert
@@ -248,6 +249,7 @@ public class AsyncTests : TestBase
             finally
             {
                 EventDispatcher.OnException = originalOnException;
+                EventDispatcher<AsyncTestEvent>.LocalOnException = originalLocalOnException;
             }
         }
         finally
@@ -269,16 +271,16 @@ public class AsyncTests : TestBase
         var handler2 = new InAction<AsyncTestEvent>((in AsyncTestEvent evt) => { handler2Invoked = true; });
         var handler3 = new InAction<AsyncTestEvent>((in AsyncTestEvent evt) => { handler3Invoked = true; });
 
-        var token1 = EventDispatcher<AsyncTestEvent>.Subscribe(handler1);
-        var token2 = EventDispatcher<AsyncTestEvent>.Subscribe(handler2);
-        var token3 = EventDispatcher<AsyncTestEvent>.Subscribe(handler3);
+        var token1 = AsyncTestEvents.SubscribeAsyncTestEvent(handler1);
+        var token2 = AsyncTestEvents.SubscribeAsyncTestEvent(handler2);
+        var token3 = AsyncTestEvents.SubscribeAsyncTestEvent(handler3);
 
         try
         {
             // Act - 使用 Task.Run 发布
             await Task.Run(() =>
             {
-                EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(42));
+                AsyncTestEvents.PublishAsyncTestEvent(42);
             });
 
             // Assert
@@ -328,7 +330,7 @@ public class AsyncTests : TestBase
         {
             Interlocked.Increment(ref invocationCount);
         });
-        var token = EventDispatcher<AsyncTestEvent>.Subscribe(handler);
+        var token = AsyncTestEvents.SubscribeAsyncTestEvent(handler);
 
         try
         {
@@ -340,7 +342,7 @@ public class AsyncTests : TestBase
                 var value = i;
                 tasks.Add(Task.Run(() =>
                 {
-                    EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(value));
+                    AsyncTestEvents.PublishAsyncTestEvent(value);
                 }));
             }
 
@@ -368,8 +370,8 @@ public class AsyncTests : TestBase
         SubscriptionToken token2 = default;
         await Task.Run(() =>
         {
-            token1 = EventDispatcher<AsyncTestEvent>.Subscribe(handler1);
-            token2 = EventDispatcher<AsyncTestEvent>.Subscribe(handler2);
+            token1 = AsyncTestEvents.SubscribeAsyncTestEvent(handler1);
+            token2 = AsyncTestEvents.SubscribeAsyncTestEvent(handler2);
         });
 
         try
@@ -377,7 +379,7 @@ public class AsyncTests : TestBase
             // 发布
             await Task.Run(() =>
             {
-                EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(1));
+                AsyncTestEvents.PublishAsyncTestEvent(1);
             });
 
             // 异步退订
@@ -389,7 +391,7 @@ public class AsyncTests : TestBase
             // 再次发布
             await Task.Run(() =>
             {
-                EventDispatcher<AsyncTestEvent>.Publish(new AsyncTestEvent(2));
+                AsyncTestEvents.PublishAsyncTestEvent(2);
             });
 
             // Assert

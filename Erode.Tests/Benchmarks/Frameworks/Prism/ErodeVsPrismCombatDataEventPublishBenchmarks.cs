@@ -1,3 +1,5 @@
+using Erode.Tests.Benchmarks.Frameworks.EventTypes;
+
 namespace Erode.Tests.Benchmarks.Frameworks.Prism;
 
 [SimpleJob(RuntimeMoniker.Net80)]
@@ -39,11 +41,10 @@ public class ErodeVsPrismCombatDataEventPublishBenchmarks : BenchmarkBase
 
     private void WarmupErode()
     {
-        var warmupEvent = new Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent(100, 50, 30, 1.0f, 2.0f, 3.0f, true);
-        var warmupToken = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent>.Subscribe(HandlerHelpers.CreateCombatDataEventHandler(0));
+        var warmupToken = BenchmarkEvents.SubscribeCombatDataEvent(HandlerHelpers.CreateCombatDataEventHandler(0));
         for (int i = 0; i < 100; i++)
         {
-            EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent>.Publish(warmupEvent);
+            BenchmarkEvents.PublishCombatDataEvent(100, 50, 30, 1.0f, 2.0f, 3.0f, true);
         }
         warmupToken.Dispose();
         TestCleanupHelper.CleanupAll();
@@ -55,7 +56,7 @@ public class ErodeVsPrismCombatDataEventPublishBenchmarks : BenchmarkBase
         _erodeTokens = new SubscriptionToken[SubscriberCount];
         for (int i = 0; i < SubscriberCount; i++)
         {
-            _erodeTokens[i] = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent>.Subscribe(HandlerHelpers.CreateCombatDataEventHandler(i));
+            _erodeTokens[i] = BenchmarkEvents.SubscribeCombatDataMultiEvent(HandlerHelpers.CreateCombatDataMultiEventHandler(i));
         }
 
         _eventAggregator = new global::Prism.Events.EventAggregator();
@@ -85,8 +86,7 @@ public class ErodeVsPrismCombatDataEventPublishBenchmarks : BenchmarkBase
     public long Publish_MultiSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent(100, 50, 30, 1.0f, 2.0f, 3.0f, true);
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent>.Publish(evt);
+        BenchmarkEvents.PublishCombatDataMultiEvent(100, 50, 30, 1.0f, 2.0f, 3.0f, true);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -116,8 +116,7 @@ public class ErodeVsPrismCombatDataEventPublishBenchmarks : BenchmarkBase
     public long Publish_NoSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent(100, 50, 30, 1.0f, 2.0f, 3.0f, true);
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent>.Publish(evt);
+        BenchmarkEvents.PublishCombatDataEmptyEvent(100, 50, 30, 1.0f, 2.0f, 3.0f, true);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -147,9 +146,8 @@ public class ErodeVsPrismCombatDataEventPublishBenchmarks : BenchmarkBase
     public long Publish_SingleSubscriber_Erode()
     {
         HandlerHelpers.ResetSink();
-        var token = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent>.Subscribe(HandlerHelpers.CreateCombatDataEventHandler(0));
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent(100, 50, 30, 1.0f, 2.0f, 3.0f, true);
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent>.Publish(evt);
+        var token = BenchmarkEvents.SubscribeCombatDataSingleEvent(HandlerHelpers.CreateCombatDataSingleEventHandler(0));
+        BenchmarkEvents.PublishCombatDataSingleEvent(100, 50, 30, 1.0f, 2.0f, 3.0f, true);
         token.Dispose();
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Erode.Tests.Helpers;
 
 namespace Erode.Tests.Unit;
 
@@ -8,10 +9,8 @@ public class EdgeCaseTests : TestBase
     public void Publish_NoSubscribers_DoesNotThrow()
     {
         // Arrange
-        var evt = new TestEvent();
-
         // Act & Assert
-        var exception = Record.Exception(() => EventDispatcher<TestEvent>.Publish(evt));
+        var exception = Record.Exception(() => BasicTestEvents.PublishSimpleTestEvent());
         exception.Should().BeNull();
     }
 
@@ -19,10 +18,8 @@ public class EdgeCaseTests : TestBase
     public void Publish_ZeroSubscribers_ShouldNotThrow()
     {
         // Arrange
-        var evt = new TestEvent();
-
         // Act & Assert
-        var exception = Record.Exception(() => EventDispatcher<TestEvent>.Publish(evt));
+        var exception = Record.Exception(() => BasicTestEvents.PublishSimpleTestEvent());
         exception.Should().BeNull();
     }
 
@@ -31,11 +28,11 @@ public class EdgeCaseTests : TestBase
     {
         // Arrange
         var invoked = false;
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { invoked = true; });
-        var token = EventDispatcher<TestEvent>.Subscribe(handler);
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { invoked = true; });
+        var token = BasicTestEvents.SubscribeSimpleTestEvent(handler);
 
         // Act
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
 
         // Assert
         invoked.Should().BeTrue();
@@ -96,10 +93,10 @@ public class EdgeCaseTests : TestBase
         // Act
         for (int i = 0; i < handlerCount; i++)
         {
-            tokens.Add(EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler));
+            tokens.Add(EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler));
         }
 
-        EventDispatcher<EdgeCaseTestEvent>.Publish(new EdgeCaseTestEvent());
+        EdgeCaseTestEvents.PublishEdgeCaseTestEvent();
 
         // Assert
         invocationCount.Should().Be(handlerCount);
@@ -117,12 +114,12 @@ public class EdgeCaseTests : TestBase
         // Arrange
         var invocationCount = 0;
         var handler = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) => { invocationCount++; });
-        var token = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler);
+        var token = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler);
 
         // Act
-        EventDispatcher<EdgeCaseTestEvent>.Publish(new EdgeCaseTestEvent());
-        EventDispatcher<EdgeCaseTestEvent>.Publish(new EdgeCaseTestEvent());
-        EventDispatcher<EdgeCaseTestEvent>.Publish(new EdgeCaseTestEvent());
+        EdgeCaseTestEvents.PublishEdgeCaseTestEvent();
+        EdgeCaseTestEvents.PublishEdgeCaseTestEvent();
+        EdgeCaseTestEvents.PublishEdgeCaseTestEvent();
 
         // Assert
         invocationCount.Should().Be(3);
@@ -136,14 +133,14 @@ public class EdgeCaseTests : TestBase
     {
         // Arrange
         var invocationCount = 0;
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { invocationCount++; });
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { invocationCount++; });
 
         // Act
-        var token1 = EventDispatcher<TestEvent>.Subscribe(handler);
-        var token2 = EventDispatcher<TestEvent>.Subscribe(handler);
-        var token3 = EventDispatcher<TestEvent>.Subscribe(handler);
+        var token1 = BasicTestEvents.SubscribeSimpleTestEvent(handler);
+        var token2 = BasicTestEvents.SubscribeSimpleTestEvent(handler);
+        var token3 = BasicTestEvents.SubscribeSimpleTestEvent(handler);
 
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
 
         // Assert
         invocationCount.Should().Be(3);
@@ -158,20 +155,20 @@ public class EdgeCaseTests : TestBase
     public void Subscribe_Unsubscribe_RapidCycle_ShouldWork()
     {
         // Arrange
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { });
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { });
 
         // Act & Assert - 快速订阅/退订循环
         for (int i = 0; i < 100; i++)
         {
-            var token = EventDispatcher<TestEvent>.Subscribe(handler);
+            var token = BasicTestEvents.SubscribeSimpleTestEvent(handler);
             token.Dispose();
         }
 
         // 验证没有订阅者
         var invoked = false;
-        var testHandler = new InAction<TestEvent>((in TestEvent evt) => { invoked = true; });
-        var testToken = EventDispatcher<TestEvent>.Subscribe(testHandler);
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        var testHandler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { invoked = true; });
+        var testToken = BasicTestEvents.SubscribeSimpleTestEvent(testHandler);
+        BasicTestEvents.PublishSimpleTestEvent();
         invoked.Should().BeTrue();
         testToken.Dispose();
     }
@@ -182,12 +179,12 @@ public class EdgeCaseTests : TestBase
         // Arrange
         var invocationCount = 0;
         var handler = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) => { Interlocked.Increment(ref invocationCount); });
-        var token = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler);
+        var token = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler);
 
         // Act
         Parallel.For(0, 100, i =>
         {
-            EventDispatcher<EdgeCaseTestEvent>.Publish(new EdgeCaseTestEvent());
+            EdgeCaseTestEvents.PublishEdgeCaseTestEvent();
         });
 
         // Assert - Copy-On-Write 应该保证线程安全
@@ -210,19 +207,19 @@ public class EdgeCaseTests : TestBase
             if (newToken == null)
             {
                 var handler4 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent e) => { callOrder.Add(4); });
-                newToken = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler4);
+                newToken = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler4);
             }
         });
 
         var handler2 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) => { callOrder.Add(2); });
         var handler3 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) => { callOrder.Add(3); });
 
-        var token1 = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler1);
-        var token2 = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler2);
-        var token3 = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler3);
+        var token1 = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler1);
+        var token2 = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler2);
+        var token3 = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler3);
 
         // Act
-        var exception = Record.Exception(() => EventDispatcher<EdgeCaseTestEvent>.Publish(new EdgeCaseTestEvent()));
+        var exception = Record.Exception(() => EdgeCaseTestEvents.PublishEdgeCaseTestEvent());
 
         // Assert - 迭代器不应该失效
         exception.Should().BeNull();
@@ -254,13 +251,13 @@ public class EdgeCaseTests : TestBase
         var handler2 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) => { callOrder.Add(2); });
         var handler3 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) => { callOrder.Add(3); });
 
-        var token1 = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler1);
-        var token2 = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler2);
-        var token3 = EventDispatcher<EdgeCaseTestEvent>.Subscribe(handler3);
+        var token1 = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler1);
+        var token2 = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler2);
+        var token3 = EdgeCaseTestEvents.SubscribeEdgeCaseTestEvent(handler3);
         tokenToUnsubscribe = token2;
 
         // Act
-        var exception = Record.Exception(() => EventDispatcher<EdgeCaseTestEvent>.Publish(new EdgeCaseTestEvent()));
+        var exception = Record.Exception(() => EdgeCaseTestEvents.PublishEdgeCaseTestEvent());
 
         // Assert - 发布链路不应该崩坏
         exception.Should().BeNull();

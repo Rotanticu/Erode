@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Erode.Tests.Helpers;
 
 namespace Erode.Tests.Unit;
 
@@ -93,7 +94,7 @@ public class ExceptionRobustnessTests : TestBase
         // Arrange - 使用独立的事件类型避免测试间干扰
         SubscriptionToken? tokenToUnsubscribe = null;
         var handlerInvoked = false;
-        var handler = new InAction<ExceptionTestEvent>((in ExceptionTestEvent evt) =>
+        var handler = new InAction<ExceptionRobustnessTestEvent>((in ExceptionRobustnessTestEvent evt) =>
         {
             handlerInvoked = true;
             if (tokenToUnsubscribe.HasValue)
@@ -103,13 +104,13 @@ public class ExceptionRobustnessTests : TestBase
             throw new InvalidOperationException("Exception after unsubscribe");
         });
 
-        var token = EventDispatcher<ExceptionTestEvent>.Subscribe(handler);
+        var token = ExceptionTestEvents.SubscribeExceptionRobustnessTestEvent(handler);
         tokenToUnsubscribe = token;
 
         // Act - 异常不再抛出
         var exception = Record.Exception(() =>
         {
-            EventDispatcher<ExceptionTestEvent>.Publish(new ExceptionTestEvent(1));
+            ExceptionTestEvents.PublishExceptionRobustnessTestEvent(1);
         });
 
         // Assert - 应该能成功退订，即使抛异常（异常不再抛出）
@@ -118,7 +119,7 @@ public class ExceptionRobustnessTests : TestBase
 
         // 下次发布不应该触发（因为已经退订）
         handlerInvoked = false;
-        EventDispatcher<ExceptionTestEvent>.Publish(new ExceptionTestEvent(2));
+        ExceptionTestEvents.PublishExceptionRobustnessTestEvent(2);
         handlerInvoked.Should().BeFalse();
     }
 
@@ -126,27 +127,27 @@ public class ExceptionRobustnessTests : TestBase
     public void Handler_MultipleExceptions_ShouldNotThrow()
     {
         // Arrange - 使用独立的事件类型避免测试间干扰
-        var handler1 = new InAction<MultipleExceptionTestEvent>((in MultipleExceptionTestEvent evt) =>
+        var handler1 = new InAction<MultipleExceptionRobustnessTestEvent>((in MultipleExceptionRobustnessTestEvent evt) =>
         {
             throw new InvalidOperationException("Handler 1 exception");
         });
-        var handler2 = new InAction<MultipleExceptionTestEvent>((in MultipleExceptionTestEvent evt) =>
+        var handler2 = new InAction<MultipleExceptionRobustnessTestEvent>((in MultipleExceptionRobustnessTestEvent evt) =>
         {
             throw new ArgumentException("Handler 2 exception");
         });
-        var handler3 = new InAction<MultipleExceptionTestEvent>((in MultipleExceptionTestEvent evt) =>
+        var handler3 = new InAction<MultipleExceptionRobustnessTestEvent>((in MultipleExceptionRobustnessTestEvent evt) =>
         {
             throw new NotSupportedException("Handler 3 exception");
         });
 
-        var token1 = EventDispatcher<MultipleExceptionTestEvent>.Subscribe(handler1);
-        var token2 = EventDispatcher<MultipleExceptionTestEvent>.Subscribe(handler2);
-        var token3 = EventDispatcher<MultipleExceptionTestEvent>.Subscribe(handler3);
+        var token1 = ExceptionTestEvents.SubscribeMultipleExceptionRobustnessTestEvent(handler1);
+        var token2 = ExceptionTestEvents.SubscribeMultipleExceptionRobustnessTestEvent(handler2);
+        var token3 = ExceptionTestEvents.SubscribeMultipleExceptionRobustnessTestEvent(handler3);
 
         // Act - 异常不再抛出
         var exception = Record.Exception(() =>
         {
-            EventDispatcher<MultipleExceptionTestEvent>.Publish(new MultipleExceptionTestEvent(1));
+            ExceptionTestEvents.PublishMultipleExceptionRobustnessTestEvent(1);
         });
 
         // Assert - 异常不再抛出，发布者逻辑不受影响
@@ -162,17 +163,17 @@ public class ExceptionRobustnessTests : TestBase
     public void Handler_SingleException_ShouldNotThrow()
     {
         // Arrange - 使用独立的事件类型避免测试间干扰
-        var handler = new InAction<SingleExceptionTestEvent>((in SingleExceptionTestEvent evt) =>
+        var handler = new InAction<SingleExceptionRobustnessTestEvent>((in SingleExceptionRobustnessTestEvent evt) =>
         {
             throw new InvalidOperationException("Single exception");
         });
 
-        var token = EventDispatcher<SingleExceptionTestEvent>.Subscribe(handler);
+        var token = ExceptionTestEvents.SubscribeSingleExceptionRobustnessTestEvent(handler);
 
         // Act - 异常不再抛出
         var exception = Record.Exception(() =>
         {
-            EventDispatcher<SingleExceptionTestEvent>.Publish(new SingleExceptionTestEvent(1));
+            ExceptionTestEvents.PublishSingleExceptionRobustnessTestEvent(1);
         });
 
         // Assert - 异常不再抛出，发布者逻辑不受影响

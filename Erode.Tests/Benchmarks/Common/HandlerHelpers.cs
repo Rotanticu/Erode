@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Erode.Tests.Benchmarks.Frameworks.EventTypes;
 
 namespace Erode.Tests.Benchmarks.Common;
 
@@ -18,7 +19,7 @@ internal sealed class SignalEventHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void OnEvent(in Frameworks.EventTypes.ErodeEventTypes.SignalEvent evt)
+    public void OnEvent(in SignalEvent evt)
     {
         // 信号型事件无数据，仅通知
         // 业务逻辑：记录事件发生
@@ -40,7 +41,7 @@ internal sealed class SignalEventEmptyHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void OnEvent(in Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Empty evt)
+    public void OnEvent(in SignalEmptyEvent evt)
     {
         var result = _id * 1000L + 1;
         HandlerHelpers.AddToSink(result);
@@ -60,7 +61,7 @@ internal sealed class SignalEventMultiHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void OnEvent(in Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi evt)
+    public void OnEvent(in SignalMultiEvent evt)
     {
         var result = _id * 1000L + 1;
         HandlerHelpers.AddToSink(result);
@@ -80,7 +81,7 @@ internal sealed class SignalEventSingleHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void OnEvent(in Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single evt)
+    public void OnEvent(in SignalSingleEvent evt)
     {
         var result = _id * 1000L + 1;
         HandlerHelpers.AddToSink(result);
@@ -109,7 +110,7 @@ internal sealed class PrismSignalEventHandler
 }
 
 /// <summary>
-/// SingleValueEvent 的 TestHandler
+/// SingleValueEvent 的 TestHandler（支持所有 SingleValue 变体）
 /// </summary>
 internal sealed class SingleValueEventHandler
 {
@@ -121,9 +122,33 @@ internal sealed class SingleValueEventHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void OnEvent(in Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent evt)
+    public void OnEvent(in SingleValueEvent evt)
     {
         // 业务逻辑：计算值的哈希并记录
+        var value = evt.Value;
+        var result = (value ^ _id) * 1000L + value;
+        HandlerHelpers.AddToSink(result);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in SingleValueMultiEvent evt)
+    {
+        var value = evt.Value;
+        var result = (value ^ _id) * 1000L + value;
+        HandlerHelpers.AddToSink(result);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in SingleValueSingleEvent evt)
+    {
+        var value = evt.Value;
+        var result = (value ^ _id) * 1000L + value;
+        HandlerHelpers.AddToSink(result);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in SingleValueEmptyEvent evt)
+    {
         var value = evt.Value;
         var result = (value ^ _id) * 1000L + value;
         HandlerHelpers.AddToSink(result);
@@ -153,7 +178,7 @@ internal sealed class PrismSingleValueEventHandler
 }
 
 /// <summary>
-/// CombatDataEvent 的 TestHandler
+/// CombatDataEvent 的 TestHandler（支持所有 CombatData 变体）
 /// </summary>
 internal sealed class CombatDataEventHandler
 {
@@ -165,18 +190,32 @@ internal sealed class CombatDataEventHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void OnEvent(in Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent evt)
+    public void OnEvent(in CombatDataEvent evt)
     {
-        // 业务逻辑：计算战斗力的综合评分
-        var health = evt.Health;
-        var attack = evt.Attack;
-        var defense = evt.Defense;
-        var x = evt.X;
-        var y = evt.Y;
-        var z = evt.Z;
-        var isAlive = evt.IsAlive;
+        ProcessCombatData(evt.Health, evt.Attack, evt.Defense, evt.X, evt.Y, evt.Z, evt.IsAlive);
+    }
 
-        // 计算综合战斗力
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in CombatDataMultiEvent evt)
+    {
+        ProcessCombatData(evt.Health, evt.Attack, evt.Defense, evt.X, evt.Y, evt.Z, evt.IsAlive);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in CombatDataSingleEvent evt)
+    {
+        ProcessCombatData(evt.Health, evt.Attack, evt.Defense, evt.X, evt.Y, evt.Z, evt.IsAlive);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in CombatDataEmptyEvent evt)
+    {
+        ProcessCombatData(evt.Health, evt.Attack, evt.Defense, evt.X, evt.Y, evt.Z, evt.IsAlive);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ProcessCombatData(int health, int attack, int defense, float x, float y, float z, bool isAlive)
+    {
         var combatPower = health + attack * 2 + defense;
         var positionHash = (long)(x * 1000 + y * 100 + z);
         var result = (combatPower ^ _id) * 1000L + positionHash + (isAlive ? 1 : 0);
@@ -216,7 +255,7 @@ internal sealed class PrismCombatDataEventHandler
 }
 
 /// <summary>
-/// MixedBusinessDataEvent 的 TestHandler
+/// MixedBusinessDataEvent 的 TestHandler（支持所有 MixedBusinessData 变体）
 /// </summary>
 internal sealed class MixedBusinessDataEventHandler
 {
@@ -228,17 +267,32 @@ internal sealed class MixedBusinessDataEventHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void OnEvent(in Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent evt)
+    public void OnEvent(in MixedBusinessDataEvent evt)
     {
-        // 业务逻辑：计算业务数据的综合哈希
-        var sessionId = evt.SessionId;
-        var timestamp = evt.Timestamp;
-        var createdAt = evt.CreatedAt;
-        var userName = evt.UserName;
-        var player = evt.Player;
-        var eventId = evt.Id;
+        ProcessMixedBusinessData(evt.SessionId, evt.Timestamp, evt.CreatedAt, evt.UserName, evt.Player, evt.Id);
+    }
 
-        // 计算综合哈希
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in MixedBusinessDataMultiEvent evt)
+    {
+        ProcessMixedBusinessData(evt.SessionId, evt.Timestamp, evt.CreatedAt, evt.UserName, evt.Player, evt.Id);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in MixedBusinessDataSingleEvent evt)
+    {
+        ProcessMixedBusinessData(evt.SessionId, evt.Timestamp, evt.CreatedAt, evt.UserName, evt.Player, evt.Id);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in MixedBusinessDataEmptyEvent evt)
+    {
+        ProcessMixedBusinessData(evt.SessionId, evt.Timestamp, evt.CreatedAt, evt.UserName, evt.Player, evt.Id);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ProcessMixedBusinessData(Guid sessionId, long timestamp, DateTime createdAt, string userName, Common.SharedTestTypes.PlayerInfo player, int eventId)
+    {
         var sessionHash = sessionId.GetHashCode();
         var timeHash = timestamp ^ createdAt.Ticks;
         var userHash = userName?.GetHashCode() ?? 0;
@@ -281,7 +335,7 @@ internal sealed class PrismMixedBusinessDataEventHandler
 }
 
 /// <summary>
-/// HeavyPayloadEvent 的 TestHandler
+/// HeavyPayloadEvent 的 TestHandler（支持所有 HeavyPayload 变体）
 /// </summary>
 internal sealed class HeavyPayloadEventHandler
 {
@@ -293,31 +347,32 @@ internal sealed class HeavyPayloadEventHandler
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void OnEvent(in Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent evt)
+    public void OnEvent(in HeavyPayloadEvent evt)
     {
-        // 业务逻辑：计算重负载数据的综合哈希
-        var eventId = evt.EventId;
-        var timestamp = evt.Timestamp;
-        var value1 = evt.Value1;
-        var value2 = evt.Value2;
-        var createdAt = evt.CreatedAt;
-        var name = evt.Name;
-        var description = evt.Description;
-        var category = evt.Category;
-        var tags = evt.Tags;
-        var metadata = evt.Metadata;
-        var player = evt.Player;
-        var idField = evt.Id;
-        var x = evt.X;
-        var y = evt.Y;
-        var z = evt.Z;
-        var flag1 = evt.Flag1;
-        var flag2 = evt.Flag2;
-        var flag3 = evt.Flag3;
-        var flag4 = evt.Flag4;
-        var flag5 = evt.Flag5;
+        ProcessHeavyPayload(evt.EventId, evt.Timestamp, evt.Value1, evt.Value2, evt.CreatedAt, evt.Name, evt.Description, evt.Category, evt.Tags, evt.Metadata, evt.Player, evt.Id, evt.X, evt.Y, evt.Z, evt.Flag1, evt.Flag2, evt.Flag3, evt.Flag4, evt.Flag5);
+    }
 
-        // 计算综合哈希
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in HeavyPayloadMultiEvent evt)
+    {
+        ProcessHeavyPayload(evt.EventId, evt.Timestamp, evt.Value1, evt.Value2, evt.CreatedAt, evt.Name, evt.Description, evt.Category, evt.Tags, evt.Metadata, evt.Player, evt.Id, evt.X, evt.Y, evt.Z, evt.Flag1, evt.Flag2, evt.Flag3, evt.Flag4, evt.Flag5);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in HeavyPayloadSingleEvent evt)
+    {
+        ProcessHeavyPayload(evt.EventId, evt.Timestamp, evt.Value1, evt.Value2, evt.CreatedAt, evt.Name, evt.Description, evt.Category, evt.Tags, evt.Metadata, evt.Player, evt.Id, evt.X, evt.Y, evt.Z, evt.Flag1, evt.Flag2, evt.Flag3, evt.Flag4, evt.Flag5);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void OnEvent(in HeavyPayloadEmptyEvent evt)
+    {
+        ProcessHeavyPayload(evt.EventId, evt.Timestamp, evt.Value1, evt.Value2, evt.CreatedAt, evt.Name, evt.Description, evt.Category, evt.Tags, evt.Metadata, evt.Player, evt.Id, evt.X, evt.Y, evt.Z, evt.Flag1, evt.Flag2, evt.Flag3, evt.Flag4, evt.Flag5);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ProcessHeavyPayload(Guid eventId, long timestamp, double value1, double value2, DateTime createdAt, string name, string description, string category, List<int> tags, Dictionary<string, int> metadata, Common.SharedTestTypes.PlayerInfo player, int idField, float x, float y, float z, bool flag1, bool flag2, bool flag3, bool flag4, bool flag5)
+    {
         var eventIdHash = eventId.GetHashCode();
         var timeHash = timestamp ^ createdAt.Ticks;
         var valueHash = (long)(value1 * 1000 + value2 * 100);
@@ -433,7 +488,7 @@ internal static class HandlerHelpers
     // ========== SignalEvent Handlers ==========
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent> CreateSignalEventHandler(int id)
+    public static InAction<SignalEvent> CreateSignalEventHandler(int id)
     {
         var handler = new SignalEventHandler(id);
         return handler.OnEvent; // 返回成员方法委托，无闭包分配
@@ -442,21 +497,21 @@ internal static class HandlerHelpers
     // ========== 测试隔离专用事件类型的 Handlers ==========
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Empty> CreateSignalEventEmptyHandler(int id)
+    public static InAction<SignalEmptyEvent> CreateSignalEventEmptyHandler(int id)
     {
         var handler = new SignalEventEmptyHandler(id);
         return handler.OnEvent; // 返回成员方法委托，无闭包分配
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi> CreateSignalEventMultiHandler(int id)
+    public static InAction<SignalMultiEvent> CreateSignalEventMultiHandler(int id)
     {
         var handler = new SignalEventMultiHandler(id);
         return handler.OnEvent; // 返回成员方法委托，无闭包分配
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single> CreateSignalEventSingleHandler(int id)
+    public static InAction<SignalSingleEvent> CreateSignalEventSingleHandler(int id)
     {
         var handler = new SignalEventSingleHandler(id);
         return handler.OnEvent; // 返回成员方法委托，无闭包分配
@@ -472,7 +527,28 @@ internal static class HandlerHelpers
     // ========== SingleValueEvent Handlers ==========
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static InAction<Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent> CreateSingleValueEventHandler(int id)
+    public static InAction<SingleValueEvent> CreateSingleValueEventHandler(int id)
+    {
+        var handler = new SingleValueEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<SingleValueMultiEvent> CreateSingleValueMultiEventHandler(int id)
+    {
+        var handler = new SingleValueEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<SingleValueSingleEvent> CreateSingleValueSingleEventHandler(int id)
+    {
+        var handler = new SingleValueEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<SingleValueEmptyEvent> CreateSingleValueEmptyEventHandler(int id)
     {
         var handler = new SingleValueEventHandler(id);
         return handler.OnEvent; // 返回成员方法委托，无闭包分配
@@ -488,7 +564,28 @@ internal static class HandlerHelpers
     // ========== CombatDataEvent Handlers ==========
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static InAction<Frameworks.EventTypes.ErodeEventTypes.CombatDataEvent> CreateCombatDataEventHandler(int id)
+    public static InAction<CombatDataEvent> CreateCombatDataEventHandler(int id)
+    {
+        var handler = new CombatDataEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<CombatDataMultiEvent> CreateCombatDataMultiEventHandler(int id)
+    {
+        var handler = new CombatDataEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<CombatDataSingleEvent> CreateCombatDataSingleEventHandler(int id)
+    {
+        var handler = new CombatDataEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<CombatDataEmptyEvent> CreateCombatDataEmptyEventHandler(int id)
     {
         var handler = new CombatDataEventHandler(id);
         return handler.OnEvent; // 返回成员方法委托，无闭包分配
@@ -504,7 +601,28 @@ internal static class HandlerHelpers
     // ========== MixedBusinessDataEvent Handlers ==========
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static InAction<Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent> CreateMixedBusinessDataEventHandler(int id)
+    public static InAction<MixedBusinessDataEvent> CreateMixedBusinessDataEventHandler(int id)
+    {
+        var handler = new MixedBusinessDataEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<MixedBusinessDataMultiEvent> CreateMixedBusinessDataMultiEventHandler(int id)
+    {
+        var handler = new MixedBusinessDataEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<MixedBusinessDataSingleEvent> CreateMixedBusinessDataSingleEventHandler(int id)
+    {
+        var handler = new MixedBusinessDataEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<MixedBusinessDataEmptyEvent> CreateMixedBusinessDataEmptyEventHandler(int id)
     {
         var handler = new MixedBusinessDataEventHandler(id);
         return handler.OnEvent; // 返回成员方法委托，无闭包分配
@@ -520,7 +638,28 @@ internal static class HandlerHelpers
     // ========== HeavyPayloadEvent Handlers ==========
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static InAction<Frameworks.EventTypes.ErodeEventTypes.HeavyPayloadEvent> CreateHeavyPayloadEventHandler(int id)
+    public static InAction<HeavyPayloadEvent> CreateHeavyPayloadEventHandler(int id)
+    {
+        var handler = new HeavyPayloadEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<HeavyPayloadMultiEvent> CreateHeavyPayloadMultiEventHandler(int id)
+    {
+        var handler = new HeavyPayloadEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<HeavyPayloadSingleEvent> CreateHeavyPayloadSingleEventHandler(int id)
+    {
+        var handler = new HeavyPayloadEventHandler(id);
+        return handler.OnEvent; // 返回成员方法委托，无闭包分配
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static InAction<HeavyPayloadEmptyEvent> CreateHeavyPayloadEmptyEventHandler(int id)
     {
         var handler = new HeavyPayloadEventHandler(id);
         return handler.OnEvent; // 返回成员方法委托，无闭包分配

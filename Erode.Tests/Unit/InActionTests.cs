@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Erode.Tests.Helpers;
 
 namespace Erode.Tests.Unit;
 
@@ -132,16 +133,16 @@ public class InActionTests : TestBase
     {
         // Arrange - 使用独立的事件类型避免测试间干扰
         var expectedException = new InvalidOperationException("Expected exception");
-        var handler = new InAction<SingleExceptionTestEvent>((in SingleExceptionTestEvent evt) =>
+        var handler = new InAction<SingleExceptionRobustnessTestEvent>((in SingleExceptionRobustnessTestEvent evt) =>
         {
             throw expectedException;
         });
-        var token = EventDispatcher<SingleExceptionTestEvent>.Subscribe(handler);
+        var token = ExceptionTestEvents.SubscribeSingleExceptionRobustnessTestEvent(handler);
 
         // Act - 异常不再抛出，而是通过 OnException 转发
         var exception = Record.Exception(() =>
         {
-            EventDispatcher<SingleExceptionTestEvent>.Publish(new SingleExceptionTestEvent(1));
+            ExceptionTestEvents.PublishSingleExceptionRobustnessTestEvent(1);
         });
 
         // Assert - 异常不再抛出，发布者逻辑不受影响

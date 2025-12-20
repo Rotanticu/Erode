@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Erode.Tests.Helpers;
 
 namespace Erode.Tests.Integration;
 
@@ -13,18 +14,18 @@ public class IntegrationTests : TestBase
         var handler2 = new InAction<IntegrationTestEvent>((in IntegrationTestEvent evt) => { invocationLog.Add("handler2"); });
 
         // Act
-        var token1 = EventDispatcher<IntegrationTestEvent>.Subscribe(handler);
-        var token2 = EventDispatcher<IntegrationTestEvent>.Subscribe(handler2);
+        var token1 = IntegrationTestEvents.SubscribeIntegrationTestEvent(handler);
+        var token2 = IntegrationTestEvents.SubscribeIntegrationTestEvent(handler2);
 
-        EventDispatcher<IntegrationTestEvent>.Publish(new IntegrationTestEvent());
+        IntegrationTestEvents.PublishIntegrationTestEvent();
         invocationLog.Should().HaveCount(2);
 
         token1.Dispose();
-        EventDispatcher<IntegrationTestEvent>.Publish(new IntegrationTestEvent());
+        IntegrationTestEvents.PublishIntegrationTestEvent();
         invocationLog.Should().HaveCount(3); // Only handler2 should be invoked
 
         token2.Dispose();
-        EventDispatcher<IntegrationTestEvent>.Publish(new IntegrationTestEvent());
+        IntegrationTestEvents.PublishIntegrationTestEvent();
         invocationLog.Should().HaveCount(3); // No more handlers
 
         // Assert
@@ -101,17 +102,17 @@ public class IntegrationTests : TestBase
         var handler4 = new InAction<TestGeneratedEvent>((in TestGeneratedEvent evt) => { results.Add($"TestGeneratedEvent-{evt.Message}"); });
 
         // Act
-        var token1 = EventDispatcher<IntegrationTestEvent>.Subscribe(handler1);
-        var token2 = EventDispatcher<IntegrationTestEvent>.Subscribe(handler2);
+        var token1 = IntegrationTestEvents.SubscribeIntegrationTestEvent(handler1);
+        var token2 = IntegrationTestEvents.SubscribeIntegrationTestEvent(handler2);
         var token3 = EventDispatcher<TestEventWithData>.Subscribe(handler3);
         var token4 = TestEvents.SubscribeTestGeneratedEvent(handler4);
 
-        EventDispatcher<IntegrationTestEvent>.Publish(new IntegrationTestEvent());
+        IntegrationTestEvents.PublishIntegrationTestEvent();
         EventDispatcher<TestEventWithData>.Publish(new TestEventWithData("data1", 1));
         TestEvents.PublishTestGeneratedEvent("generated1", 1);
 
         token2.Dispose();
-        EventDispatcher<IntegrationTestEvent>.Publish(new IntegrationTestEvent());
+        IntegrationTestEvents.PublishIntegrationTestEvent();
         EventDispatcher<TestEventWithData>.Publish(new TestEventWithData("data2", 3));
 
         // Assert

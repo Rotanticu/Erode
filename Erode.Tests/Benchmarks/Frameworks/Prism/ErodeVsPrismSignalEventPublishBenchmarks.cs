@@ -1,3 +1,5 @@
+using Erode.Tests.Benchmarks.Frameworks.EventTypes;
+
 namespace Erode.Tests.Benchmarks.Frameworks.Prism;
 
 [SimpleJob(RuntimeMoniker.Net80)]
@@ -27,10 +29,10 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     private Action<Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData> _singleSubscriberPrismHandler = null!;
 
     // 缓存的 Handler 委托（在 GlobalSetup 中预先创建，避免每次调用都创建新实例）
-    private InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent> _warmupErodeHandler = null!;
-    private InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>[] _erodeMultiHandlers = Array.Empty<InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>>();
+    private InAction<SignalEvent> _warmupErodeHandler = null!;
+    private InAction<SignalMultiEvent>[] _erodeMultiHandlers = Array.Empty<InAction<SignalMultiEvent>>();
     private Action<Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData>[] _prismMultiHandlers = Array.Empty<Action<Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData>>();
-    private InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single> _singleSubscriberErodeHandler = null!;
+    private InAction<SignalSingleEvent> _singleSubscriberErodeHandler = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -43,7 +45,7 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
         _singleSubscriberErodeHandler = HandlerHelpers.CreateSignalEventSingleHandler(0);
         
         // 预先创建多订阅者所需的 Handler 委托（最多 100 个）
-        _erodeMultiHandlers = new InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>[SubscriberCount];
+        _erodeMultiHandlers = new InAction<SignalMultiEvent>[SubscriberCount];
         _prismMultiHandlers = new Action<Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData>[SubscriberCount];
         for (int i = 0; i < SubscriberCount; i++)
         {
@@ -66,11 +68,10 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
 
     private void WarmupErode()
     {
-        var warmupEvent = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent();
-        var warmupToken = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Subscribe(_warmupErodeHandler);
+        var warmupToken = BenchmarkEvents.SubscribeSignalEvent(_warmupErodeHandler);
         for (int i = 0; i < 100; i++)
         {
-            EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Publish(in warmupEvent);
+            BenchmarkEvents.PublishSignalEvent();
         }
         warmupToken.Dispose();
         TestCleanupHelper.CleanupAll();
@@ -79,12 +80,12 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
 
     private void SetupMultiSubscribers()
     {
-        // Erode 多订阅者（使用 SignalEvent_Multi 实现静态隔离）
+        // Erode 多订阅者（使用 SignalMultiEvent 实现静态隔离）
         _erodeTokens = new SubscriptionToken[SubscriberCount];
         for (int i = 0; i < SubscriberCount; i++)
         {
             // 使用预先创建的委托，避免每次调用都创建新实例
-            _erodeTokens[i] = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>.Subscribe(_erodeMultiHandlers[i]);
+            _erodeTokens[i] = BenchmarkEvents.SubscribeSignalMultiEvent(_erodeMultiHandlers[i]);
         }
 
         // Prism 多订阅者
@@ -118,8 +119,7 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     public long Publish_MultiSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi();
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>.Publish(in evt);
+        BenchmarkEvents.PublishSignalMultiEvent();
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -141,11 +141,10 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     [Benchmark]
     public long Publish_NoSubscribers_Erode()
     {
-        // 使用 SignalEvent_Empty 实现静态隔离，确保真正的"无订阅"状态
+        // 使用 SignalEmptyEvent 实现静态隔离，确保真正的"无订阅"状态
         // 不同的事件类型在静态空间中是物理隔离的，无需清理
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Empty();
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Empty>.Publish(in evt);
+        BenchmarkEvents.PublishSignalEmptyEvent();
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -167,12 +166,11 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     [Benchmark]
     public long Publish_SingleSubscriber_Erode()
     {
-        // 使用 SignalEvent_Single 实现静态隔离
+        // 使用 SignalSingleEvent 实现静态隔离
         HandlerHelpers.ResetSink();
         // 使用预先创建的委托，避免每次调用都创建新实例
-        var token = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single>.Subscribe(_singleSubscriberErodeHandler);
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single();
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single>.Publish(in evt);
+        var token = BenchmarkEvents.SubscribeSignalSingleEvent(_singleSubscriberErodeHandler);
+        BenchmarkEvents.PublishSignalSingleEvent();
         token.Dispose();
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);

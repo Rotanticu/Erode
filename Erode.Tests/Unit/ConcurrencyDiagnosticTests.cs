@@ -1,5 +1,6 @@
 using FluentAssertions;
 using System.Collections.Concurrent;
+using Erode.Tests.Helpers;
 
 namespace Erode.Tests.Unit;
 
@@ -9,10 +10,6 @@ namespace Erode.Tests.Unit;
 /// </summary>
 public class ConcurrencyDiagnosticTests : TestBase
 {
-    /// <summary>
-    /// 用于并发测试的独立事件类型
-    /// </summary>
-    private readonly record struct ConcurrentTestEvent(int Id) : IEvent;
 
     [Fact]
     public void ConcurrentSubscribe_ShouldNotLoseSubscriptions()
@@ -32,7 +29,7 @@ public class ConcurrencyDiagnosticTests : TestBase
                 {
                     Interlocked.Increment(ref invocationCount);
                 });
-                var token = EventDispatcher<ConcurrentTestEvent>.Subscribe(handler);
+                var token = ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler);
                 allTokens.Add(token);
             }
         });
@@ -41,7 +38,7 @@ public class ConcurrencyDiagnosticTests : TestBase
         allTokens.Count.Should().Be(threadCount * subscribesPerThread);
 
         // 发布一次，验证所有 handler 都被调用
-        EventDispatcher<ConcurrentTestEvent>.Publish(new ConcurrentTestEvent(0));
+        ConcurrencyTestEvents.PublishConcurrentTestEvent(0);
         invocationCount.Should().Be(threadCount * subscribesPerThread);
 
         // Cleanup
@@ -66,7 +63,7 @@ public class ConcurrencyDiagnosticTests : TestBase
             {
                 Interlocked.Increment(ref invocationCount);
             });
-            tokens.Add(EventDispatcher<ConcurrentTestEvent>.Subscribe(handler));
+            tokens.Add(ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler));
         }
 
         // Act - 多个线程同时 Unsubscribe
@@ -76,7 +73,7 @@ public class ConcurrencyDiagnosticTests : TestBase
         });
 
         // Assert - 状态不应该被破坏
-        EventDispatcher<ConcurrentTestEvent>.Publish(new ConcurrentTestEvent(0));
+        ConcurrencyTestEvents.PublishConcurrentTestEvent(0);
         invocationCount.Should().Be(0); // 所有订阅都已退订
     }
 
@@ -96,13 +93,13 @@ public class ConcurrencyDiagnosticTests : TestBase
             {
                 Interlocked.Increment(ref handlerInvocations[index]);
             });
-            tokens.Add(EventDispatcher<ConcurrentTestEvent>.Subscribe(handler));
+            tokens.Add(ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler));
         }
 
         // Act - 多个线程同时 Publish
         Parallel.For(0, publishCount, i =>
         {
-            EventDispatcher<ConcurrentTestEvent>.Publish(new ConcurrentTestEvent(i));
+            ConcurrencyTestEvents.PublishConcurrentTestEvent(i);
         });
 
         // Assert - 每个 handler 都应该被调用 publishCount 次
@@ -136,7 +133,7 @@ public class ConcurrencyDiagnosticTests : TestBase
                 {
                     Interlocked.Increment(ref subscribeInvocationCount);
                 });
-                var token = EventDispatcher<ConcurrentTestEvent>.Subscribe(handler);
+                var token = ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler);
                 allTokens.Add(token);
                 Thread.Sleep(0); // 让出时间片
             }
@@ -146,7 +143,7 @@ public class ConcurrencyDiagnosticTests : TestBase
         {
             for (int i = 0; i < iterations; i++)
             {
-                EventDispatcher<ConcurrentTestEvent>.Publish(new ConcurrentTestEvent(i));
+                ConcurrencyTestEvents.PublishConcurrentTestEvent(i);
                 Interlocked.Increment(ref publishInvocationCount);
                 Thread.Sleep(0); // 让出时间片
             }
@@ -182,7 +179,7 @@ public class ConcurrencyDiagnosticTests : TestBase
             {
                 Interlocked.Increment(ref invocationCounts[index]);
             });
-            tokens.Add(EventDispatcher<ConcurrentTestEvent>.Subscribe(handler));
+            tokens.Add(ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler));
         }
 
         // Act - 一个线程 Unsubscribe，另一个线程 Publish
@@ -199,7 +196,7 @@ public class ConcurrencyDiagnosticTests : TestBase
         {
             for (int i = 0; i < handlerCount * 10; i++)
             {
-                EventDispatcher<ConcurrentTestEvent>.Publish(new ConcurrentTestEvent(i));
+                ConcurrencyTestEvents.PublishConcurrentTestEvent(i);
                 Thread.Sleep(0); // 让出时间片
             }
         });
@@ -234,11 +231,11 @@ public class ConcurrencyDiagnosticTests : TestBase
                     {
                         Interlocked.Increment(ref invocationCount);
                     });
-                    var token = EventDispatcher<ConcurrentTestEvent>.Subscribe(handler);
+                    var token = ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler);
                     allTokens.Add(token);
 
                     // Publish
-                    EventDispatcher<ConcurrentTestEvent>.Publish(new ConcurrentTestEvent(taskId * iterations + j));
+                    ConcurrencyTestEvents.PublishConcurrentTestEvent(taskId * iterations + j);
 
                     // 随机 Unsubscribe 一些
                     if (j % 3 == 0 && allTokens.TryTake(out var tokenToUnsubscribe))
@@ -281,7 +278,7 @@ public class ConcurrencyDiagnosticTests : TestBase
                 {
                     throw new InvalidOperationException($"Handler {i} exception");
                 });
-                tokens.Add(EventDispatcher<ConcurrentTestEvent>.Subscribe(handler));
+                tokens.Add(ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler));
             }
             else
             {
@@ -290,18 +287,28 @@ public class ConcurrencyDiagnosticTests : TestBase
                 {
                     Interlocked.Increment(ref normalHandlerInvocations);
                 });
-                tokens.Add(EventDispatcher<ConcurrentTestEvent>.Subscribe(handler));
+                tokens.Add(ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler));
             }
         }
 
-        // Act - 多个线程同时 Publish，使用带异常处理回调的 Publish 方法
-        Parallel.For(0, publishCount, i =>
+        // Act - 设置异常处理，然后多个线程同时 Publish
+        var originalLocalOnException = EventDispatcher<ConcurrentTestEvent>.LocalOnException;
+        EventDispatcher<ConcurrentTestEvent>.LocalOnException = (evt, handler, ex) =>
         {
-            EventDispatcher<ConcurrentTestEvent>.Publish(new ConcurrentTestEvent(i), (evt, handler, ex) =>
+            Interlocked.Increment(ref exceptionCount);
+        };
+
+        try
+        {
+            Parallel.For(0, publishCount, i =>
             {
-                Interlocked.Increment(ref exceptionCount);
+                ConcurrencyTestEvents.PublishConcurrentTestEvent(i);
             });
-        });
+        }
+        finally
+        {
+            EventDispatcher<ConcurrentTestEvent>.LocalOnException = originalLocalOnException;
+        }
 
         // Assert - 异常应该被处理，正常的 handler 应该被调用
         exceptionCount.Should().BeGreaterThan(0); // 应该有异常被捕获
@@ -331,7 +338,7 @@ public class ConcurrencyDiagnosticTests : TestBase
                 {
                     Interlocked.Increment(ref invocationCount);
                 });
-                var token = EventDispatcher<ConcurrentTestEvent>.Subscribe(handler);
+                var token = ConcurrencyTestEvents.SubscribeConcurrentTestEvent(handler);
                 allTokens.Add(token);
                 Thread.Sleep(1);
             }
@@ -354,7 +361,7 @@ public class ConcurrencyDiagnosticTests : TestBase
         {
             for (int i = 0; i < iterations * 2; i++)
             {
-                EventDispatcher<ConcurrentTestEvent>.Publish(new ConcurrentTestEvent(i));
+                ConcurrencyTestEvents.PublishConcurrentTestEvent(i);
                 Thread.Sleep(0);
             }
         });

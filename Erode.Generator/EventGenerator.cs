@@ -349,6 +349,7 @@ public class EventGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("using Erode;");
         sb.AppendLine("using System.CodeDom.Compiler;");
+        sb.AppendLine("using System.Diagnostics;");
         sb.AppendLine("using System.Diagnostics.CodeAnalysis;");
         sb.AppendLine("using System.Runtime.CompilerServices;");
         sb.AppendLine();
@@ -393,6 +394,20 @@ public class EventGenerator : IIncrementalGenerator
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    public static System.Action<Erode.IEvent, System.Delegate, System.Exception>? OnException;");
         sb.AppendLine();
+        
+        // 生成静态构造函数，为所有事件类型设置 LocalOnException
+        if (events.Length > 0)
+        {
+            sb.AppendLine($"    static {implementationClassName}()");
+            sb.AppendLine("    {");
+            foreach (var evt in events)
+            {
+                var eventTypeName = evt.EventName;
+                sb.AppendLine($"        EventDispatcher<{eventTypeName}>.LocalOnException = (evt, handler, ex) => OnException?.Invoke(evt, handler, ex);");
+            }
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
 
         foreach (var evt in events)
         {
@@ -426,17 +441,12 @@ public class EventGenerator : IIncrementalGenerator
             sb.AppendLine($"    /// <summary>");
             sb.AppendLine($"    /// 发布 {eventTypeName} 事件");
             sb.AppendLine($"    /// </summary>");
+            sb.AppendLine($"    [DebuggerStepThrough]");
             sb.AppendLine($"    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
             sb.AppendLine($"    public static void {standardMethodName}({paramList})");
             sb.AppendLine("    {");
             sb.AppendLine($"        var eventData = {eventCreation};");
-            sb.AppendLine($"        EventDispatcher<{eventTypeName}>.Publish(in eventData, (evt, handler, ex) =>");
-            sb.AppendLine("        {");
-            sb.AppendLine("            // 先调用本类的 OnException");
-            sb.AppendLine("            OnException?.Invoke(evt, handler, ex);");
-            sb.AppendLine("            // 再调用全局的 EventDispatcher.OnException（如果设置了）");
-            sb.AppendLine("            Erode.EventDispatcher.OnException?.Invoke(evt, handler, ex);");
-            sb.AppendLine("        });");
+            sb.AppendLine($"        EventDispatcher<{eventTypeName}>.Publish(in eventData);");
             sb.AppendLine("    }");
             sb.AppendLine();
 
@@ -457,6 +467,7 @@ public class EventGenerator : IIncrementalGenerator
                 sb.AppendLine($"    /// <summary>");
                 sb.AppendLine($"    /// 发布 {eventTypeName} 事件（用户方法名）");
                 sb.AppendLine($"    /// </summary>");
+                sb.AppendLine($"    [DebuggerStepThrough]");
                 sb.AppendLine($"    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
                 sb.AppendLine($"    public static void {evt.OriginalMethodName}({paramList}) => {standardMethodName}({methodParamNames});");
                 sb.AppendLine();
@@ -467,6 +478,8 @@ public class EventGenerator : IIncrementalGenerator
             sb.AppendLine($"    /// <summary>");
             sb.AppendLine($"    /// 订阅 {eventTypeName} 事件（推荐使用，零拷贝）");
             sb.AppendLine($"    /// </summary>");
+            sb.AppendLine($"    [DebuggerStepThrough]");
+            sb.AppendLine($"    [MethodImpl(MethodImplOptions.AggressiveInlining)]");
             sb.AppendLine($"    public static SubscriptionToken {subscribeMethodName}(InAction<{eventTypeName}> handler)");
             sb.AppendLine("    {");
             sb.AppendLine($"        return EventDispatcher<{eventTypeName}>.Subscribe(handler);");

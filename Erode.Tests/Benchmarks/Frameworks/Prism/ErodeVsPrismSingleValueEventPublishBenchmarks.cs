@@ -1,3 +1,5 @@
+using Erode.Tests.Benchmarks.Frameworks.EventTypes;
+
 namespace Erode.Tests.Benchmarks.Frameworks.Prism;
 
 [SimpleJob(RuntimeMoniker.Net80)]
@@ -39,11 +41,10 @@ public class ErodeVsPrismSingleValueEventPublishBenchmarks : BenchmarkBase
 
     private void WarmupErode()
     {
-        var warmupEvent = new Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent(12345L);
-        var warmupToken = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent>.Subscribe(HandlerHelpers.CreateSingleValueEventHandler(0));
+        var warmupToken = BenchmarkEvents.SubscribeSingleValueEvent(HandlerHelpers.CreateSingleValueEventHandler(0));
         for (int i = 0; i < 100; i++)
         {
-            EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent>.Publish(warmupEvent);
+            BenchmarkEvents.PublishSingleValueEvent(12345L);
         }
         warmupToken.Dispose();
         TestCleanupHelper.CleanupAll();
@@ -55,7 +56,7 @@ public class ErodeVsPrismSingleValueEventPublishBenchmarks : BenchmarkBase
         _erodeTokens = new SubscriptionToken[SubscriberCount];
         for (int i = 0; i < SubscriberCount; i++)
         {
-            _erodeTokens[i] = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent>.Subscribe(HandlerHelpers.CreateSingleValueEventHandler(i));
+            _erodeTokens[i] = BenchmarkEvents.SubscribeSingleValueMultiEvent(HandlerHelpers.CreateSingleValueMultiEventHandler(i));
         }
 
         _eventAggregator = new global::Prism.Events.EventAggregator();
@@ -85,8 +86,7 @@ public class ErodeVsPrismSingleValueEventPublishBenchmarks : BenchmarkBase
     public long Publish_MultiSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent(12345L);
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent>.Publish(evt);
+        BenchmarkEvents.PublishSingleValueMultiEvent(12345L);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -107,8 +107,7 @@ public class ErodeVsPrismSingleValueEventPublishBenchmarks : BenchmarkBase
     public long Publish_NoSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent(12345L);
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent>.Publish(evt);
+        BenchmarkEvents.PublishSingleValueEmptyEvent(12345L);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -129,9 +128,8 @@ public class ErodeVsPrismSingleValueEventPublishBenchmarks : BenchmarkBase
     public long Publish_SingleSubscriber_Erode()
     {
         HandlerHelpers.ResetSink();
-        var token = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent>.Subscribe(HandlerHelpers.CreateSingleValueEventHandler(0));
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent(12345L);
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SingleValueEvent>.Publish(evt);
+        var token = BenchmarkEvents.SubscribeSingleValueSingleEvent(HandlerHelpers.CreateSingleValueSingleEventHandler(0));
+        BenchmarkEvents.PublishSingleValueSingleEvent(12345L);
         token.Dispose();
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);

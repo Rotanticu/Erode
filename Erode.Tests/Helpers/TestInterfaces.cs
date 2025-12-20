@@ -51,6 +51,158 @@ namespace Erode.Tests.Helpers
         [GenerateEvent]
         void PublishKeywordEvent(int @event, string @class, int @params);
     }
+
+    // ========== 单元测试事件接口 ==========
+
+    /// <summary>
+    /// 并发测试事件接口
+    /// </summary>
+    public interface IConcurrencyTestEvents
+    {
+        [GenerateEvent]
+        void PublishConcurrentTestEvent(int id);
+    }
+
+    /// <summary>
+    /// 异步测试事件接口
+    /// </summary>
+    public interface IAsyncTestEvents
+    {
+        [GenerateEvent]
+        void PublishAsyncTestEvent(int value);
+    }
+
+    /// <summary>
+    /// 退订测试事件接口
+    /// </summary>
+    public interface IUnsubscribeTestEvents
+    {
+        [GenerateEvent]
+        void PublishUnsubscribeTestEvent(int value);
+
+        [GenerateEvent]
+        void PublishUnsubscribeTest2Event();
+    }
+
+    /// <summary>
+    /// 发布测试事件接口
+    /// </summary>
+    public interface IPublishTestEvents
+    {
+        [GenerateEvent]
+        void PublishBasicTestEvent(int value);
+
+        [GenerateEvent]
+        void PublishBasicTestEmptyEvent();
+    }
+
+    /// <summary>
+    /// 线程安全测试事件接口
+    /// </summary>
+    public interface IThreadSafetyTestEvents
+    {
+        [GenerateEvent]
+        void PublishThreadSafetyTestEvent(int value);
+    }
+
+    /// <summary>
+    /// 边界情况测试事件接口
+    /// </summary>
+    public interface IEdgeCaseTestEvents
+    {
+        [GenerateEvent]
+        void PublishEdgeCaseTestEvent();
+    }
+
+    /// <summary>
+    /// 异常测试事件接口
+    /// </summary>
+    public interface IExceptionTestEvents
+    {
+        [GenerateEvent]
+        void PublishExceptionRobustnessTestEvent(int value);
+
+        [GenerateEvent]
+        void PublishSingleExceptionRobustnessTestEvent(int value);
+
+        [GenerateEvent]
+        void PublishMultipleExceptionRobustnessTestEvent(int value);
+    }
+
+    /// <summary>
+    /// 顺序测试事件接口
+    /// </summary>
+    public interface IOrderTestEvents
+    {
+        [GenerateEvent]
+        void PublishOrderTestNewEvent(int order);
+    }
+
+    /// <summary>
+    /// 生命周期测试事件接口
+    /// </summary>
+    public interface ILifecycleTestEvents
+    {
+        [GenerateEvent]
+        void PublishLifecycleTestEvent();
+    }
+
+    /// <summary>
+    /// 集成测试事件接口
+    /// </summary>
+    public interface IIntegrationTestEvents
+    {
+        [GenerateEvent]
+        void PublishIntegrationTestEvent();
+    }
+
+    /// <summary>
+    /// Copy-On-Write 测试事件接口
+    /// </summary>
+    public interface ICopyOnWriteTestEvents
+    {
+        [GenerateEvent]
+        void PublishCopyOnWriteTestEvent(int value);
+    }
+
+    /// <summary>
+    /// 静态单例测试事件接口
+    /// </summary>
+    public interface IStaticSingletonTestEvents
+    {
+        [GenerateEvent]
+        void PublishStaticSingletonTestEvent(int value);
+    }
+
+    /// <summary>
+    /// 事件结构测试事件接口
+    /// </summary>
+    public interface IEventStructureTestEvents
+    {
+        [GenerateEvent]
+        void PublishStructureSimpleEvent();
+
+        [GenerateEvent]
+        void PublishStructureValueTypesEvent(int x, int y, float z);
+    }
+
+    /// <summary>
+    /// 基础测试事件接口（用于替换手写的 TestEvent）
+    /// </summary>
+    public interface IBasicTestEvents
+    {
+        [GenerateEvent]
+        void PublishSimpleTestEvent();
+    }
+
+    /// <summary>
+    /// 带数据的测试事件接口（用于替换手写的 TestEventWithData）
+    /// </summary>
+    public interface IBasicTestEventsWithData
+    {
+        [GenerateEvent]
+        void PublishBasicTestWithDataEvent(string message, int value);
+    }
 }
 
 // 不同命名空间的同名接口（用于测试命名空间冲突）

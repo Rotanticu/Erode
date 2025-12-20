@@ -1,5 +1,6 @@
 using FluentAssertions;
 using System.Collections.Concurrent;
+using Erode.Tests.Helpers;
 
 namespace Erode.Tests.Unit;
 
@@ -11,12 +12,12 @@ public class ThreadSafetyTests : TestBase
         // Arrange
         const int threadCount = 100;
         var tokens = new SubscriptionToken[threadCount];
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { });
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { });
 
         // Act
         Parallel.For(0, threadCount, i =>
         {
-            tokens[i] = EventDispatcher<TestEvent>.Subscribe(handler);
+            tokens[i] = BasicTestEvents.SubscribeSimpleTestEvent(handler);
         });
 
         // Assert
@@ -37,12 +38,12 @@ public class ThreadSafetyTests : TestBase
         const int publishCount = 100;
         var invocationCount = 0;
         var handler = new InAction<ThreadSafetyTestEvent>((in ThreadSafetyTestEvent evt) => { Interlocked.Increment(ref invocationCount); });
-        var token = EventDispatcher<ThreadSafetyTestEvent>.Subscribe(handler);
+        var token = ThreadSafetyTestEvents.SubscribeThreadSafetyTestEvent(handler);
 
         // Act
         Parallel.For(0, publishCount, i =>
         {
-            EventDispatcher<ThreadSafetyTestEvent>.Publish(new ThreadSafetyTestEvent());
+            ThreadSafetyTestEvents.PublishThreadSafetyTestEvent(0);
         });
 
         // Assert
@@ -58,11 +59,11 @@ public class ThreadSafetyTests : TestBase
         // Arrange
         const int threadCount = 50;
         var tokens = new SubscriptionToken[threadCount];
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { });
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { });
 
         for (int i = 0; i < threadCount; i++)
         {
-            tokens[i] = EventDispatcher<TestEvent>.Subscribe(handler);
+            tokens[i] = BasicTestEvents.SubscribeSimpleTestEvent(handler);
         }
 
         // Act & Assert
@@ -83,7 +84,7 @@ public class ThreadSafetyTests : TestBase
         // Arrange
         const int operationCount = 1000;
         var invocationCount = 0;
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { Interlocked.Increment(ref invocationCount); });
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { Interlocked.Increment(ref invocationCount); });
         var tokens = new List<SubscriptionToken>();
 
         // Act
@@ -92,7 +93,7 @@ public class ThreadSafetyTests : TestBase
             if (i % 2 == 0)
             {
                 // Subscribe
-                var token = EventDispatcher<TestEvent>.Subscribe(handler);
+                var token = BasicTestEvents.SubscribeSimpleTestEvent(handler);
                 lock (tokens)
                 {
                     tokens.Add(token);
@@ -101,7 +102,7 @@ public class ThreadSafetyTests : TestBase
             else
             {
                 // Publish
-                EventDispatcher<TestEvent>.Publish(new TestEvent());
+                BasicTestEvents.PublishSimpleTestEvent();
             }
         });
 
@@ -121,15 +122,15 @@ public class ThreadSafetyTests : TestBase
         // Arrange
         const int threadCount = 50;
         var exceptions = new ConcurrentBag<Exception>();
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { });
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { });
 
         // Act
         Parallel.For(0, threadCount, i =>
         {
             try
             {
-                var token = EventDispatcher<TestEvent>.Subscribe(handler);
-                EventDispatcher<TestEvent>.Publish(new TestEvent());
+                var token = BasicTestEvents.SubscribeSimpleTestEvent(handler);
+                BasicTestEvents.PublishSimpleTestEvent();
                 token.Dispose();
             }
             catch (Exception ex)

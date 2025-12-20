@@ -1,3 +1,5 @@
+using Erode.Tests.Benchmarks.Frameworks.EventTypes;
+
 namespace Erode.Tests.Benchmarks.Frameworks.Prism;
 
 [SimpleJob(RuntimeMoniker.Net80)]
@@ -43,18 +45,10 @@ public class ErodeVsPrismMixedBusinessDataEventPublishBenchmarks : BenchmarkBase
 
     private void WarmupErode()
     {
-        var warmupEvent = new Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent(
-            TestSessionId,
-            DateTime.UtcNow.Ticks,
-            DateTime.UtcNow,
-            "TestUser",
-            TestPlayer,
-            1
-        );
-        var warmupToken = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent>.Subscribe(HandlerHelpers.CreateMixedBusinessDataEventHandler(0));
+        var warmupToken = BenchmarkEvents.SubscribeMixedBusinessDataEvent(HandlerHelpers.CreateMixedBusinessDataEventHandler(0));
         for (int i = 0; i < 100; i++)
         {
-            EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent>.Publish(warmupEvent);
+            BenchmarkEvents.PublishMixedBusinessDataEvent(TestSessionId, DateTime.UtcNow.Ticks, DateTime.UtcNow, "TestUser", TestPlayer, 1);
         }
         warmupToken.Dispose();
         TestCleanupHelper.CleanupAll();
@@ -66,7 +60,7 @@ public class ErodeVsPrismMixedBusinessDataEventPublishBenchmarks : BenchmarkBase
         _erodeTokens = new SubscriptionToken[SubscriberCount];
         for (int i = 0; i < SubscriberCount; i++)
         {
-            _erodeTokens[i] = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent>.Subscribe(HandlerHelpers.CreateMixedBusinessDataEventHandler(i));
+            _erodeTokens[i] = BenchmarkEvents.SubscribeMixedBusinessDataMultiEvent(HandlerHelpers.CreateMixedBusinessDataMultiEventHandler(i));
         }
 
         _eventAggregator = new global::Prism.Events.EventAggregator();
@@ -96,15 +90,7 @@ public class ErodeVsPrismMixedBusinessDataEventPublishBenchmarks : BenchmarkBase
     public long Publish_MultiSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent(
-            TestSessionId,
-            DateTime.UtcNow.Ticks,
-            DateTime.UtcNow,
-            "TestUser",
-            TestPlayer,
-            1
-        );
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent>.Publish(evt);
+        BenchmarkEvents.PublishMixedBusinessDataMultiEvent(TestSessionId, DateTime.UtcNow.Ticks, DateTime.UtcNow, "TestUser", TestPlayer, 1);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -133,15 +119,7 @@ public class ErodeVsPrismMixedBusinessDataEventPublishBenchmarks : BenchmarkBase
     public long Publish_NoSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent(
-            TestSessionId,
-            DateTime.UtcNow.Ticks,
-            DateTime.UtcNow,
-            "TestUser",
-            TestPlayer,
-            1
-        );
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent>.Publish(evt);
+        BenchmarkEvents.PublishMixedBusinessDataMultiEvent(TestSessionId, DateTime.UtcNow.Ticks, DateTime.UtcNow, "TestUser", TestPlayer, 1);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -170,16 +148,8 @@ public class ErodeVsPrismMixedBusinessDataEventPublishBenchmarks : BenchmarkBase
     public long Publish_SingleSubscriber_Erode()
     {
         HandlerHelpers.ResetSink();
-        var token = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent>.Subscribe(HandlerHelpers.CreateMixedBusinessDataEventHandler(0));
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent(
-            TestSessionId,
-            DateTime.UtcNow.Ticks,
-            DateTime.UtcNow,
-            "TestUser",
-            TestPlayer,
-            1
-        );
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.MixedBusinessDataEvent>.Publish(evt);
+        var token = BenchmarkEvents.SubscribeMixedBusinessDataSingleEvent(HandlerHelpers.CreateMixedBusinessDataSingleEventHandler(0));
+        BenchmarkEvents.PublishMixedBusinessDataSingleEvent(TestSessionId, DateTime.UtcNow.Ticks, DateTime.UtcNow, "TestUser", TestPlayer, 1);
         token.Dispose();
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);

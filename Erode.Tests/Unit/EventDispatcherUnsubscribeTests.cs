@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Erode.Tests.Helpers;
 
 namespace Erode.Tests.Unit;
 
@@ -9,12 +10,12 @@ public class EventDispatcherUnsubscribeTests : TestBase
     {
         // Arrange
         var invoked = false;
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { invoked = true; });
-        var token = EventDispatcher<TestEvent>.Subscribe(handler);
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { invoked = true; });
+        var token = BasicTestEvents.SubscribeSimpleTestEvent(handler);
 
         // Act
         token.Dispose();
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
 
         // Assert
         invoked.Should().BeFalse();
@@ -28,17 +29,17 @@ public class EventDispatcherUnsubscribeTests : TestBase
         var handler2Invoked = false;
         var handler3Invoked = false;
 
-        var handler1 = new InAction<TestEvent>((in TestEvent evt) => { handler1Invoked = true; });
-        var handler2 = new InAction<TestEvent>((in TestEvent evt) => { handler2Invoked = true; });
-        var handler3 = new InAction<TestEvent>((in TestEvent evt) => { handler3Invoked = true; });
+        var handler1 = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { handler1Invoked = true; });
+        var handler2 = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { handler2Invoked = true; });
+        var handler3 = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { handler3Invoked = true; });
 
-        var token1 = EventDispatcher<TestEvent>.Subscribe(handler1);
-        var token2 = EventDispatcher<TestEvent>.Subscribe(handler2);
-        var token3 = EventDispatcher<TestEvent>.Subscribe(handler3);
+        var token1 = BasicTestEvents.SubscribeSimpleTestEvent(handler1);
+        var token2 = BasicTestEvents.SubscribeSimpleTestEvent(handler2);
+        var token3 = BasicTestEvents.SubscribeSimpleTestEvent(handler3);
 
         // Act
         token2.Dispose();
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
 
         // Assert
         handler1Invoked.Should().BeTrue();
@@ -54,8 +55,8 @@ public class EventDispatcherUnsubscribeTests : TestBase
     public void Unsubscribe_NonExistentId_ShouldNotThrow()
     {
         // Arrange
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { });
-        var realToken = EventDispatcher<TestEvent>.Subscribe(handler);
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { });
+        var realToken = BasicTestEvents.SubscribeSimpleTestEvent(handler);
         realToken.Dispose();
 
         // 创建一个不存在的 token（使用无效的 ID）
@@ -72,7 +73,7 @@ public class EventDispatcherUnsubscribeTests : TestBase
         // Arrange
         SubscriptionToken? tokenToUnsubscribe = null;
         var handlerInvoked = false;
-        var handler = new InAction<TestEvent>((in TestEvent evt) =>
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) =>
         {
             handlerInvoked = true;
             if (tokenToUnsubscribe.HasValue)
@@ -81,18 +82,18 @@ public class EventDispatcherUnsubscribeTests : TestBase
             }
         });
 
-        var token = EventDispatcher<TestEvent>.Subscribe(handler);
+        var token = BasicTestEvents.SubscribeSimpleTestEvent(handler);
         tokenToUnsubscribe = token;
 
         // Act
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
 
         // Assert - 应该能成功退订
         handlerInvoked.Should().BeTrue();
 
         // 再次发布，应该不再触发（因为已经退订）
         handlerInvoked = false;
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
         handlerInvoked.Should().BeFalse();
     }
 
@@ -104,7 +105,7 @@ public class EventDispatcherUnsubscribeTests : TestBase
         var handler2Invoked = false;
         SubscriptionToken? token2 = null;
 
-        var handler1 = new InAction<TestEvent>((in TestEvent evt) =>
+        var handler1 = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) =>
         {
             handler1Invoked = true;
             // 在 handler1 中退订 handler2
@@ -114,16 +115,16 @@ public class EventDispatcherUnsubscribeTests : TestBase
             }
         });
 
-        var handler2 = new InAction<TestEvent>((in TestEvent evt) =>
+        var handler2 = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) =>
         {
             handler2Invoked = true;
         });
 
-        var token1 = EventDispatcher<TestEvent>.Subscribe(handler1);
-        token2 = EventDispatcher<TestEvent>.Subscribe(handler2);
+        var token1 = BasicTestEvents.SubscribeSimpleTestEvent(handler1);
+        token2 = BasicTestEvents.SubscribeSimpleTestEvent(handler2);
 
         // Act
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
 
         // Assert - handler2 应该仍然被调用（因为当前发布使用的是快照）
         handler1Invoked.Should().BeTrue();
@@ -132,7 +133,7 @@ public class EventDispatcherUnsubscribeTests : TestBase
         // 下次发布时，handler2 不应该被调用
         handler1Invoked = false;
         handler2Invoked = false;
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
         handler1Invoked.Should().BeTrue();
         handler2Invoked.Should().BeFalse();
 
@@ -148,29 +149,29 @@ public class EventDispatcherUnsubscribeTests : TestBase
         var handler = new InAction<UnsubscribeTestEvent>((in UnsubscribeTestEvent evt) => { invocationCount++; });
 
         // Act
-        var token1 = EventDispatcher<UnsubscribeTestEvent>.Subscribe(handler);
-        var token2 = EventDispatcher<UnsubscribeTestEvent>.Subscribe(handler);
-        var token3 = EventDispatcher<UnsubscribeTestEvent>.Subscribe(handler);
+        var token1 = UnsubscribeTestEvents.SubscribeUnsubscribeTestEvent(handler);
+        var token2 = UnsubscribeTestEvents.SubscribeUnsubscribeTestEvent(handler);
+        var token3 = UnsubscribeTestEvents.SubscribeUnsubscribeTestEvent(handler);
 
-        EventDispatcher<UnsubscribeTestEvent>.Publish(new UnsubscribeTestEvent());
+        UnsubscribeTestEvents.PublishUnsubscribeTestEvent(0);
         invocationCount.Should().Be(3);
 
         // 退订 token2
         token2.Dispose();
         invocationCount = 0;
-        EventDispatcher<UnsubscribeTestEvent>.Publish(new UnsubscribeTestEvent());
+        UnsubscribeTestEvents.PublishUnsubscribeTestEvent(0);
         invocationCount.Should().Be(2);
 
         // 退订 token1
         token1.Dispose();
         invocationCount = 0;
-        EventDispatcher<UnsubscribeTestEvent>.Publish(new UnsubscribeTestEvent());
+        UnsubscribeTestEvents.PublishUnsubscribeTestEvent(0);
         invocationCount.Should().Be(1);
 
         // 退订 token3
         token3.Dispose();
         invocationCount = 0;
-        EventDispatcher<UnsubscribeTestEvent>.Publish(new UnsubscribeTestEvent());
+        UnsubscribeTestEvents.PublishUnsubscribeTestEvent(0);
         invocationCount.Should().Be(0);
     }
 
@@ -178,8 +179,8 @@ public class EventDispatcherUnsubscribeTests : TestBase
     public void Dispose_MultipleTimes_ShouldBeIdempotent()
     {
         // Arrange
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { });
-        var token = EventDispatcher<TestEvent>.Subscribe(handler);
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { });
+        var token = BasicTestEvents.SubscribeSimpleTestEvent(handler);
 
         // Act
         token.Dispose();
@@ -196,18 +197,18 @@ public class EventDispatcherUnsubscribeTests : TestBase
     {
         // Arrange
         var invoked = false;
-        var handler = new InAction<TestEvent>((in TestEvent evt) => { invoked = true; });
+        var handler = new InAction<SimpleTestEvent>((in SimpleTestEvent evt) => { invoked = true; });
 
         // Act
-        using (var token = EventDispatcher<TestEvent>.Subscribe(handler))
+        using (var token = BasicTestEvents.SubscribeSimpleTestEvent(handler))
         {
-            EventDispatcher<TestEvent>.Publish(new TestEvent());
+            BasicTestEvents.PublishSimpleTestEvent();
             invoked.Should().BeTrue();
         }
 
         // Assert - using 块结束后应该自动退订
         invoked = false;
-        EventDispatcher<TestEvent>.Publish(new TestEvent());
+        BasicTestEvents.PublishSimpleTestEvent();
         invoked.Should().BeFalse();
     }
 
@@ -219,16 +220,16 @@ public class EventDispatcherUnsubscribeTests : TestBase
         var anotherEventInvoked = false;
 
         var handler1 = new InAction<UnsubscribeTestEvent>((in UnsubscribeTestEvent evt) => { testEventInvoked = true; });
-        var handler2 = new InAction<UnsubscribeTestEvent2>((in UnsubscribeTestEvent2 evt) => { anotherEventInvoked = true; });
+        var handler2 = new InAction<UnsubscribeTest2Event>((in UnsubscribeTest2Event evt) => { anotherEventInvoked = true; });
 
-        var token1 = EventDispatcher<UnsubscribeTestEvent>.Subscribe(handler1);
-        var token2 = EventDispatcher<UnsubscribeTestEvent2>.Subscribe(handler2);
+        var token1 = UnsubscribeTestEvents.SubscribeUnsubscribeTestEvent(handler1);
+        var token2 = UnsubscribeTestEvents.SubscribeUnsubscribeTest2Event(handler2);
 
         // Act - 使用 UnsubscribeTestEvent 的 token 尝试退订（实际上应该只影响 UnsubscribeTestEvent）
         token1.Dispose();
 
-        EventDispatcher<UnsubscribeTestEvent>.Publish(new UnsubscribeTestEvent());
-        EventDispatcher<UnsubscribeTestEvent2>.Publish(new UnsubscribeTestEvent2());
+        UnsubscribeTestEvents.PublishUnsubscribeTestEvent(0);
+        UnsubscribeTestEvents.PublishUnsubscribeTest2Event();
 
         // Assert
         testEventInvoked.Should().BeFalse();
