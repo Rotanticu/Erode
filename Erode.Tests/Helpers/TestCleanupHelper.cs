@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
 using System.Reflection;
-using Erode;
 
 namespace Erode.Tests.Helpers;
 
@@ -17,9 +15,9 @@ public static class TestCleanupHelper
     public static void ClearAllSubscriptions()
     {
         // 获取 EventDispatcher 静态类中注册的所有调度器
-        var allDispatchersField = typeof(EventDispatcher).GetField("_allDispatchers", 
+        var allDispatchersField = typeof(EventDispatcher).GetField("_allDispatchers",
             BindingFlags.NonPublic | BindingFlags.Static);
-        
+
         if (allDispatchersField == null)
             return;
 
@@ -53,16 +51,16 @@ public static class TestCleanupHelper
             {
                 // 构造 EventDispatcher<TEvent> 类型
                 var dispatcherType = typeof(EventDispatcher<>).MakeGenericType(eventType);
-                
+
                 // 获取 _handlerArray 字段
-                var handlerArrayField = dispatcherType.GetField("_handlerArray", 
+                var handlerArrayField = dispatcherType.GetField("_handlerArray",
                     BindingFlags.NonPublic | BindingFlags.Static);
                 if (handlerArrayField != null)
                 {
                     // 获取 _writeLock 字段
-                    var writeLockField = dispatcherType.GetField("_writeLock", 
+                    var writeLockField = dispatcherType.GetField("_writeLock",
                         BindingFlags.NonPublic | BindingFlags.Static);
-                    
+
                     if (writeLockField != null)
                     {
                         var writeLock = writeLockField.GetValue(null);
@@ -112,7 +110,7 @@ public static class TestCleanupHelper
         // 查找所有以 "Events" 结尾的静态类（Source Generator 生成的类）
         var assembly = typeof(TestEvents).Assembly;
         var allTypes = assembly.GetTypes();
-        
+
         foreach (var type in allTypes)
         {
             // 检查是否是静态类且以 "Events" 结尾
@@ -121,7 +119,7 @@ public static class TestCleanupHelper
                 try
                 {
                     // 获取 OnException 字段
-                    var onExceptionField = type.GetField("OnException", 
+                    var onExceptionField = type.GetField("OnException",
                         BindingFlags.Public | BindingFlags.Static);
                     if (onExceptionField != null)
                     {
@@ -144,6 +142,56 @@ public static class TestCleanupHelper
     {
         ClearAllSubscriptions();
         ResetGlobalExceptionHandler();
+    }
+
+    /// <summary>
+    /// 清空特定事件类型的订阅列表（用于性能测试的迭代清理）
+    /// </summary>
+    public static void ClearSubscriptions<TEvent>() where TEvent : struct, IEvent
+    {
+        try
+        {
+            var dispatcherType = typeof(EventDispatcher<>).MakeGenericType(typeof(TEvent));
+
+            // 获取 _handlerArray 字段
+            var handlerArrayField = dispatcherType.GetField("_handlerArray",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            if (handlerArrayField == null)
+                return;
+
+            // 获取 _writeLock 字段
+            var writeLockField = dispatcherType.GetField("_writeLock",
+                BindingFlags.NonPublic | BindingFlags.Static);
+
+            if (writeLockField != null)
+            {
+                var writeLock = writeLockField.GetValue(null);
+                if (writeLock != null)
+                {
+                    // 加锁后清空数组
+                    lock (writeLock)
+                    {
+                        var arrayType = handlerArrayField.FieldType;
+                        var emptyArrayMethod = typeof(Array).GetMethod("Empty", BindingFlags.Public | BindingFlags.Static);
+                        if (emptyArrayMethod != null)
+                        {
+                            var genericEmptyArrayMethod = emptyArrayMethod.MakeGenericMethod(arrayType.GetElementType()!);
+                            var emptyArray = genericEmptyArrayMethod.Invoke(null, null);
+                            handlerArrayField.SetValue(null, emptyArray);
+                        }
+                        else
+                        {
+                            var emptyArray = Array.CreateInstance(arrayType.GetElementType()!, 0);
+                            handlerArrayField.SetValue(null, emptyArray);
+                        }
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // 忽略反射调用失败的情况
+        }
     }
 }
 

@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -42,7 +40,7 @@ public class UnsubscribeTests : TestBase
         var handler = new InAction<TestEvent>((in TestEvent evt) => { });
         var realToken = EventDispatcher<TestEvent>.Subscribe(handler);
         realToken.Dispose(); // 先退订，使 token 无效
-        
+
         // 使用一个不存在的 ID，但使用有效的 UnsubscribeAction
         var nonExistentToken = new SubscriptionToken(999999, realToken.UnsubscribeAction);
 
@@ -62,7 +60,7 @@ public class UnsubscribeTests : TestBase
         token.Dispose();
         var exception1 = Record.Exception(() => token.Dispose());
         var exception2 = Record.Exception(() => token.Dispose());
-        
+
         exception1.Should().BeNull();
         exception2.Should().BeNull();
     }

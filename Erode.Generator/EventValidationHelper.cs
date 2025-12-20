@@ -1,8 +1,6 @@
-using System;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
+using System;
 
 namespace Erode.Generator;
 
@@ -108,20 +106,20 @@ internal static class EventValidationHelper
 
         // 检查必须是 interface 类型
         if (interfaceSymbol.TypeKind != TypeKind.Interface)
-            return new InterfaceValidationResult 
-            { 
-                IsValid = false, 
-                ErrorType = "NotInterface", 
-                InterfaceName = interfaceSymbol.Name 
+            return new InterfaceValidationResult
+            {
+                IsValid = false,
+                ErrorType = "NotInterface",
+                InterfaceName = interfaceSymbol.Name
             };
 
         // 检查接口不能包含泛型参数
         if (interfaceSymbol.TypeParameters.Length > 0)
-            return new InterfaceValidationResult 
-            { 
-                IsValid = false, 
-                ErrorType = "InterfaceHasGenericParameters", 
-                InterfaceName = interfaceSymbol.Name 
+            return new InterfaceValidationResult
+            {
+                IsValid = false,
+                ErrorType = "InterfaceHasGenericParameters",
+                InterfaceName = interfaceSymbol.Name
             };
 
         return new InterfaceValidationResult { IsValid = true, InterfaceName = interfaceSymbol.Name };
@@ -171,10 +169,10 @@ internal static class EventValidationHelper
 
         // 必须返回 void
         if (!methodSymbol.ReturnsVoid)
-            return new MethodValidationResult 
-            { 
-                IsValid = false, 
-                ErrorType = "NotVoid", 
+            return new MethodValidationResult
+            {
+                IsValid = false,
+                ErrorType = "NotVoid",
                 MethodName = methodSymbol.Name,
                 ReturnType = methodSymbol.ReturnType.ToDisplayString()
             };
@@ -184,10 +182,10 @@ internal static class EventValidationHelper
         {
             if (parameter.RefKind == RefKind.Ref || parameter.RefKind == RefKind.Out)
             {
-                return new MethodValidationResult 
-                { 
-                    IsValid = false, 
-                    ErrorType = "ParameterRefOrOut", 
+                return new MethodValidationResult
+                {
+                    IsValid = false,
+                    ErrorType = "ParameterRefOrOut",
                     MethodName = methodSymbol.Name,
                     ParameterName = parameter.Name
                 };
@@ -301,9 +299,9 @@ internal static class EventValidationHelper
         var formatValidation = ValidateMethodNameFormat(methodName);
         if (!formatValidation.IsValid)
         {
-            return new EventNameValidationResult 
-            { 
-                IsValid = false, 
+            return new EventNameValidationResult
+            {
+                IsValid = false,
                 ErrorType = "InvalidMethodNameFormat",
                 OriginalEventName = methodName,
                 FormatErrorReason = formatValidation.ErrorReason
@@ -318,9 +316,9 @@ internal static class EventValidationHelper
         // 验证提取的事件名是否是有效的标识符
         if (!SyntaxFacts.IsValidIdentifier(eventName))
         {
-            return new EventNameValidationResult 
-            { 
-                IsValid = false, 
+            return new EventNameValidationResult
+            {
+                IsValid = false,
                 ErrorType = "InvalidMethodNameFormat",
                 OriginalEventName = methodName,
                 FormatErrorReason = $"从方法名 '{methodName}' 提取的事件名 '{eventName}' 不是有效的 C# 标识符"
@@ -354,26 +352,26 @@ internal static class EventValidationHelper
                 // 检查去掉 Event 后缀后的部分是否是关键字（先检查原样，再检查小写版本）
                 var keywordKindWithoutSuffix = SyntaxFacts.GetKeywordKind(eventNameWithoutSuffix);
                 isKeyword = keywordKindWithoutSuffix != SyntaxKind.None && SyntaxFacts.IsReservedKeyword(keywordKindWithoutSuffix);
-                
+
                 if (!isKeyword)
                 {
                     var contextualKeywordKindWithoutSuffix = SyntaxFacts.GetContextualKeywordKind(eventNameWithoutSuffix);
                     isKeyword = contextualKeywordKindWithoutSuffix != SyntaxKind.None && SyntaxFacts.IsContextualKeyword(contextualKeywordKindWithoutSuffix);
                 }
-                
+
                 // 如果原样不是关键字，检查小写版本
                 if (!isKeyword && !string.IsNullOrEmpty(eventNameWithoutSuffix))
                 {
                     var lowerCaseName = eventNameWithoutSuffix.ToLowerInvariant();
                     var keywordKindLower = SyntaxFacts.GetKeywordKind(lowerCaseName);
                     isKeyword = keywordKindLower != SyntaxKind.None && SyntaxFacts.IsReservedKeyword(keywordKindLower);
-                    
+
                     if (!isKeyword)
                     {
                         var contextualKeywordKindLower = SyntaxFacts.GetContextualKeywordKind(lowerCaseName);
                         isKeyword = contextualKeywordKindLower != SyntaxKind.None && SyntaxFacts.IsContextualKeyword(contextualKeywordKindLower);
                     }
-                    
+
                     if (isKeyword)
                     {
                         // 如果小写版本是关键字，使用小写版本加 @ 前缀

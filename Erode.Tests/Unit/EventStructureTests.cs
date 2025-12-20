@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -11,7 +9,7 @@ public class EventStructureTests : TestBase
     {
         // Arrange & Act
         var eventType = typeof(TestEvent);
-        
+
         // Assert - 验证是 struct
         eventType.IsValueType.Should().BeTrue();
         eventType.IsClass.Should().BeFalse();
@@ -22,7 +20,7 @@ public class EventStructureTests : TestBase
     {
         // Arrange & Act
         var eventType = typeof(TestEvent);
-        
+
         // Assert
         typeof(IEvent).IsAssignableFrom(eventType).Should().BeTrue();
     }
@@ -34,11 +32,11 @@ public class EventStructureTests : TestBase
         var event1 = new TestEventWithData("test", 42);
         var event2 = new TestEventWithData("test", 42);
         var event3 = new TestEventWithData("different", 42);
-        
+
         // Act & Assert - Equals
         event1.Equals(event2).Should().BeTrue();
         event1.Equals(event3).Should().BeFalse();
-        
+
         // Act & Assert - GetHashCode
         event1.GetHashCode().Should().Be(event2.GetHashCode());
         event1.GetHashCode().Should().NotBe(event3.GetHashCode());
@@ -51,7 +49,7 @@ public class EventStructureTests : TestBase
         var event1 = new EventWithValueTypes(10, 20, 30.5f);
         var event2 = new EventWithValueTypes(10, 20, 30.5f);
         var event3 = new EventWithValueTypes(10, 20, 30.6f);
-        
+
         // Act & Assert
         event1.Should().Be(event2);
         event1.Should().NotBe(event3);
@@ -71,13 +69,13 @@ public class EventStructureTests : TestBase
             receivedEvent = evt;
         });
         var token = EventDispatcher<LargeStructEvent>.Subscribe(handler);
-        
+
         // Act
         EventDispatcher<LargeStructEvent>.Publish(in originalEvent);
-        
+
         // Assert - 验证数据完整性（如果发生拷贝，数据应该仍然正确）
         receivedEvent.Should().Be(originalEvent);
-        
+
         // Cleanup
         token.Dispose();
     }
@@ -93,13 +91,13 @@ public class EventStructureTests : TestBase
             receivedEvent = evt;
         });
         var token = EventDispatcher<EventWithValueTypes>.Subscribe(handler);
-        
+
         // Act
         EventDispatcher<EventWithValueTypes>.Publish(eventData);
-        
+
         // Assert
         receivedEvent.Should().Be(eventData);
-        
+
         // Cleanup
         token.Dispose();
     }
@@ -116,14 +114,14 @@ public class EventStructureTests : TestBase
             receivedEvent = evt;
         });
         var token = EventDispatcher<EventWithReadonlyStructField>.Subscribe(handler);
-        
+
         // Act
         EventDispatcher<EventWithReadonlyStructField>.Publish(eventData);
-        
+
         // Assert
         receivedEvent.Should().Be(eventData);
         receivedEvent.Field.Value.Should().Be(42);
-        
+
         // Cleanup
         token.Dispose();
     }

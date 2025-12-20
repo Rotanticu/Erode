@@ -1,12 +1,11 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Erode.Generator;
 
@@ -23,22 +22,22 @@ public class EventGenerator : IIncrementalGenerator
         // 3. 语法分析层：查找接口中的方法声明
         var methodDeclarations = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => 
+                predicate: static (node, _) =>
                 {
                     if (node is not MethodDeclarationSyntax method || method.AttributeLists.Count == 0)
                         return false;
-                    
+
                     // 检查父节点是否是接口
                     if (method.Parent is not InterfaceDeclarationSyntax)
                         return false;
-                    
+
                     // 在语法层检查是否有 [GenerateEvent] 特性（减少无效节点）
                     foreach (var attributeList in method.AttributeLists)
                     {
                         foreach (var attribute in attributeList.Attributes)
                         {
                             var name = attribute.Name.ToString();
-                            if (name == "GenerateEvent" || 
+                            if (name == "GenerateEvent" ||
                                 name == "GenerateEventAttribute" ||
                                 name.EndsWith(".GenerateEvent") ||
                                 name.EndsWith(".GenerateEventAttribute"))
@@ -47,7 +46,7 @@ public class EventGenerator : IIncrementalGenerator
                             }
                         }
                     }
-                    
+
                     return false;
                 },
                 transform: static (ctx, _) => (MethodDeclarationSyntax)ctx.Node);
@@ -59,7 +58,7 @@ public class EventGenerator : IIncrementalGenerator
             .Select((tuple, ct) =>
             {
                 var ((methodSyntax, compilation), attrSymbol) = tuple;
-                
+
                 // 获取语义模型（仅在此阶段使用）
                 var semanticModel = compilation.GetSemanticModel(methodSyntax.SyntaxTree);
 
@@ -67,7 +66,7 @@ public class EventGenerator : IIncrementalGenerator
                     return new EventData { IsValid = false };
 
                 var containingType = methodSymbol.ContainingType;
-                
+
                 // 检查是否是接口
                 if (containingType.TypeKind != TypeKind.Interface)
                     return new EventData { IsValid = false };
@@ -84,7 +83,7 @@ public class EventGenerator : IIncrementalGenerator
 
                 // 提取所有需要的信息到 POCO
                 var location = methodSyntax.GetLocation();
-                
+
                 // 验证接口
                 var interfaceValidation = EventValidationHelper.ValidateInterface(containingType);
                 if (!interfaceValidation.IsValid)
@@ -117,7 +116,7 @@ public class EventGenerator : IIncrementalGenerator
                 // 验证和规范化事件名
                 var eventNameValidation = EventValidationHelper.ValidateAndNormalizeEventName(
                     methodSymbol.Name, compilation, out var isKeyword);
-                
+
                 if (!eventNameValidation.IsValid)
                 {
                     return new EventData
@@ -223,10 +222,11 @@ public class EventGenerator : IIncrementalGenerator
 
                 // 按接口分组事件
                 var eventsByInterface = validEvents
-                    .GroupBy(e => new { 
-                        InterfaceName = e.InterfaceName ?? string.Empty, 
-                        InterfaceNamespace = e.InterfaceNamespace ?? string.Empty, 
-                        e.InterfaceAccessibility 
+                    .GroupBy(e => new
+                    {
+                        InterfaceName = e.InterfaceName ?? string.Empty,
+                        InterfaceNamespace = e.InterfaceNamespace ?? string.Empty,
+                        e.InterfaceAccessibility
                     })
                     .Select(g => new InterfaceEventGroup
                     {
@@ -397,7 +397,7 @@ public class EventGenerator : IIncrementalGenerator
         foreach (var evt in events)
         {
             var eventTypeName = evt.EventName;
-            
+
             // 使用 StringBuilder 直接拼接参数列表
             var paramListSb = new StringBuilder();
             var paramNamesSb = new StringBuilder();
@@ -416,7 +416,7 @@ public class EventGenerator : IIncrementalGenerator
             }
             var paramList = paramListSb.ToString();
             var paramNames = paramNamesSb.ToString();
-            
+
             var eventCreation = evt.Parameters.Count > 0
                 ? $"new {eventTypeName}({paramNames})"
                 : $"new {eventTypeName}()";
@@ -492,7 +492,7 @@ public class EventGenerator : IIncrementalGenerator
         public string? FormatErrorReason { get; set; }
         public string? InterfaceName { get; set; }
         public Location? Location { get; set; }
-        
+
         // 有效事件的数据
         public string EventName { get; set; } = string.Empty;
         public string StandardMethodName { get; set; } = string.Empty; // 标准方法名：Publish{EventName}

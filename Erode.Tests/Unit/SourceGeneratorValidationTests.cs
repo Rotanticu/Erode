@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -16,7 +14,7 @@ public class SourceGeneratorValidationTests
     {
         // Arrange & Act - 使用测试项目中生成的事件
         var eventType = typeof(TestGeneratedEvent);
-        
+
         // Assert
         eventType.IsValueType.Should().BeTrue();
         eventType.IsClass.Should().BeFalse();
@@ -27,7 +25,7 @@ public class SourceGeneratorValidationTests
     {
         // Arrange & Act
         var eventType = typeof(TestGeneratedEvent);
-        
+
         // Assert
         typeof(IEvent).IsAssignableFrom(eventType).Should().BeTrue();
     }
@@ -37,7 +35,7 @@ public class SourceGeneratorValidationTests
     {
         // Arrange & Act
         var eventType = typeof(TestGeneratedEvent);
-        
+
         // Assert - 检查是否是 readonly（通过尝试修改字段来验证，但更直接的是检查类型特性）
         // 对于 record struct，默认是 readonly 的
         eventType.IsValueType.Should().BeTrue();
@@ -48,7 +46,7 @@ public class SourceGeneratorValidationTests
     {
         // Arrange & Act
         var method = typeof(TestEvents).GetMethod("PublishTestGeneratedEvent");
-        
+
         // Assert
         method.Should().NotBeNull();
         method!.IsStatic.Should().BeTrue();
@@ -59,7 +57,7 @@ public class SourceGeneratorValidationTests
     {
         // Arrange & Act
         var method = typeof(TestEvents).GetMethod("SubscribeTestGeneratedEvent");
-        
+
         // Assert
         method.Should().NotBeNull();
         method!.IsStatic.Should().BeTrue();
@@ -70,7 +68,7 @@ public class SourceGeneratorValidationTests
     {
         // Arrange & Act
         var method = typeof(TestEvents).GetMethod("SubscribeTestGeneratedEvent");
-        
+
         // Assert
         method.Should().NotBeNull();
         method!.ReturnType.Should().Be(typeof(SubscriptionToken));
@@ -83,7 +81,7 @@ public class SourceGeneratorValidationTests
         // 生成的 TestEvents 类不应该实现 ITestEvents 接口
         var testEventsType = typeof(TestEvents);
         var interfaceType = typeof(ITestEvents);
-        
+
         // Assert
         interfaceType.IsAssignableFrom(testEventsType).Should().BeFalse();
     }

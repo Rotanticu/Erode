@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -15,7 +13,7 @@ public class SourceGeneratorInterfaceTests
         // Arrange & Act
         var testEventsType = typeof(TestEvents);
         var interfaceType = typeof(ITestEvents);
-        
+
         // Assert
         interfaceType.IsAssignableFrom(testEventsType).Should().BeFalse();
     }
@@ -26,14 +24,14 @@ public class SourceGeneratorInterfaceTests
         // Arrange
         var invoked = false;
         var handler = new InAction<TestGeneratedEvent>((in TestGeneratedEvent evt) => { invoked = true; });
-        
+
         // Act - 直接使用生成的代码，不依赖接口
         var token = TestEvents.SubscribeTestGeneratedEvent(handler);
         TestEvents.PublishTestGeneratedEvent("test", 42);
-        
+
         // Assert
         invoked.Should().BeTrue();
-        
+
         // Cleanup
         token.Dispose();
     }
@@ -44,13 +42,13 @@ public class SourceGeneratorInterfaceTests
         // Arrange & Act
         var eventType = typeof(TestGeneratedEvent);
         var interfaceMethod = typeof(ITestEvents).GetMethod("PublishTestGeneratedEvent");
-        
+
         // Assert - 事件字段应该与方法参数对应
         var eventProperties = eventType.GetProperties();
         var methodParameters = interfaceMethod!.GetParameters();
-        
+
         eventProperties.Should().HaveCount(methodParameters.Length);
-        
+
         // 验证属性名和参数名的对应关系（PascalCase vs camelCase）
         for (int i = 0; i < methodParameters.Length; i++)
         {
@@ -72,7 +70,7 @@ public class SourceGeneratorInterfaceTests
             .FirstOrDefault(t => t.Name.Contains("First") && typeof(IEvent).IsAssignableFrom(t));
         var secondEventType = typeof(MultiEventInterface).Assembly.GetTypes()
             .FirstOrDefault(t => t.Name.Contains("Second") && typeof(IEvent).IsAssignableFrom(t));
-        
+
         // 如果生成了多个事件，验证它们都存在
         if (firstEventType != null && secondEventType != null)
         {
@@ -91,7 +89,7 @@ public class SourceGeneratorInterfaceTests
         var allGeneratedEvents = typeof(TestEvents).Assembly.GetTypes()
             .Where(t => typeof(IEvent).IsAssignableFrom(t) && t.IsValueType)
             .ToList();
-        
+
         // Assert - 只应该生成标记了 [GenerateEvent] 的事件
         // 对于 ITestEvents，应该只生成 TestGeneratedEvent
         allGeneratedEvents.Should().Contain(t => t.Name == "TestGeneratedEvent");

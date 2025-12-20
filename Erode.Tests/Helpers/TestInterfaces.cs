@@ -1,5 +1,3 @@
-using Erode;
-
 namespace Erode.Tests.Helpers
 {
     /// <summary>
@@ -25,7 +23,7 @@ namespace Erode.Tests.Helpers
     {
         [GenerateEvent]
         void PublishFirstEvent(string data);
-        
+
         [GenerateEvent]
         void PublishSecondEvent(int value);
     }

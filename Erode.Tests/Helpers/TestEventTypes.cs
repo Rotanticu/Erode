@@ -1,5 +1,3 @@
-using Erode;
-
 namespace Erode.Tests.Helpers;
 
 /// <summary>
@@ -18,7 +16,7 @@ public readonly record struct EventWithValueTypes(int X, int Y, float Z) : IEven
 public readonly struct ReadonlyStructField
 {
     public readonly int Value;
-    
+
     public ReadonlyStructField(int value)
     {
         Value = value;

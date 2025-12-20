@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -206,8 +204,8 @@ public class EdgeCaseTests : TestBase
         var callOrder = new List<int>();
         SubscriptionToken? newToken = null;
 
-        var handler1 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) => 
-        { 
+        var handler1 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) =>
+        {
             callOrder.Add(1);
             if (newToken == null)
             {
@@ -244,8 +242,8 @@ public class EdgeCaseTests : TestBase
         var callOrder = new List<int>();
         SubscriptionToken? tokenToUnsubscribe = null;
 
-        var handler1 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) => 
-        { 
+        var handler1 = new InAction<EdgeCaseTestEvent>((in EdgeCaseTestEvent evt) =>
+        {
             callOrder.Add(1);
             if (tokenToUnsubscribe.HasValue)
             {

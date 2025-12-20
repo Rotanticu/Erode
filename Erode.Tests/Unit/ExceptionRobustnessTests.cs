@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -14,7 +12,7 @@ public class ExceptionRobustnessTests : TestBase
         var handler1Invoked = false;
         var handler2Invoked = false;
         var handler3Invoked = false;
-        
+
         var handler1 = new InAction<IsolatedTestEvent>((in IsolatedTestEvent evt) =>
         {
             handler1Invoked = true;
@@ -28,24 +26,24 @@ public class ExceptionRobustnessTests : TestBase
         {
             handler3Invoked = true;
         });
-        
+
         var token1 = EventDispatcher<IsolatedTestEvent>.Subscribe(handler1);
         var token2 = EventDispatcher<IsolatedTestEvent>.Subscribe(handler2);
         var token3 = EventDispatcher<IsolatedTestEvent>.Subscribe(handler3);
-        
+
         // Act - 异常不再抛出，而是通过 OnException 转发
         var exception = Record.Exception(() =>
         {
             EventDispatcher<IsolatedTestEvent>.Publish(new IsolatedTestEvent(1));
         });
-        
+
         // Assert - 所有处理器都应该被调用，即使第一个抛异常
         // 异常不会抛出，发布者逻辑不受影响
         handler1Invoked.Should().BeTrue();
         handler2Invoked.Should().BeTrue();
         handler3Invoked.Should().BeTrue();
         exception.Should().BeNull(); // 异常不再抛出
-        
+
         // Cleanup
         token1.Dispose();
         token2.Dispose();
@@ -65,26 +63,26 @@ public class ExceptionRobustnessTests : TestBase
                 throw new InvalidOperationException("First invocation exception");
             }
         });
-        
+
         var token = EventDispatcher<IsolatedTestEvent>.Subscribe(handler);
-        
+
         // Act - 异常不再抛出，发布者逻辑不受影响
         var exception1 = Record.Exception(() =>
         {
             EventDispatcher<IsolatedTestEvent>.Publish(new IsolatedTestEvent(1));
         });
-        
+
         // 第二次发布应该仍然正常工作
         var exception2 = Record.Exception(() =>
         {
             EventDispatcher<IsolatedTestEvent>.Publish(new IsolatedTestEvent(2));
         });
-        
+
         // Assert
         invocationCount.Should().Be(2);
         exception1.Should().BeNull(); // 异常不再抛出
         exception2.Should().BeNull(); // 第二次也不抛异常
-        
+
         // Cleanup
         token.Dispose();
     }
@@ -104,20 +102,20 @@ public class ExceptionRobustnessTests : TestBase
             }
             throw new InvalidOperationException("Exception after unsubscribe");
         });
-        
+
         var token = EventDispatcher<ExceptionTestEvent>.Subscribe(handler);
         tokenToUnsubscribe = token;
-        
+
         // Act - 异常不再抛出
         var exception = Record.Exception(() =>
         {
             EventDispatcher<ExceptionTestEvent>.Publish(new ExceptionTestEvent(1));
         });
-        
+
         // Assert - 应该能成功退订，即使抛异常（异常不再抛出）
         handlerInvoked.Should().BeTrue();
         exception.Should().BeNull(); // 异常不再抛出
-        
+
         // 下次发布不应该触发（因为已经退订）
         handlerInvoked = false;
         EventDispatcher<ExceptionTestEvent>.Publish(new ExceptionTestEvent(2));
@@ -140,20 +138,20 @@ public class ExceptionRobustnessTests : TestBase
         {
             throw new NotSupportedException("Handler 3 exception");
         });
-        
+
         var token1 = EventDispatcher<MultipleExceptionTestEvent>.Subscribe(handler1);
         var token2 = EventDispatcher<MultipleExceptionTestEvent>.Subscribe(handler2);
         var token3 = EventDispatcher<MultipleExceptionTestEvent>.Subscribe(handler3);
-        
+
         // Act - 异常不再抛出
         var exception = Record.Exception(() =>
         {
             EventDispatcher<MultipleExceptionTestEvent>.Publish(new MultipleExceptionTestEvent(1));
         });
-        
+
         // Assert - 异常不再抛出，发布者逻辑不受影响
         exception.Should().BeNull();
-        
+
         // Cleanup
         token1.Dispose();
         token2.Dispose();
@@ -168,18 +166,18 @@ public class ExceptionRobustnessTests : TestBase
         {
             throw new InvalidOperationException("Single exception");
         });
-        
+
         var token = EventDispatcher<SingleExceptionTestEvent>.Subscribe(handler);
-        
+
         // Act - 异常不再抛出
         var exception = Record.Exception(() =>
         {
             EventDispatcher<SingleExceptionTestEvent>.Publish(new SingleExceptionTestEvent(1));
         });
-        
+
         // Assert - 异常不再抛出，发布者逻辑不受影响
         exception.Should().BeNull();
-        
+
         // Cleanup
         token.Dispose();
     }
@@ -189,13 +187,13 @@ public class ExceptionRobustnessTests : TestBase
     {
         // Arrange - 使用独立的事件类型避免测试间干扰
         InAction<IsolatedTestEvent>? nullHandler = null;
-        
+
         // Act & Assert
         var exception = Record.Exception(() =>
         {
             EventDispatcher<IsolatedTestEvent>.Subscribe(nullHandler!);
         });
-        
+
         // Assert - 应该抛出 ArgumentNullException
         exception.Should().NotBeNull();
         exception.Should().BeOfType<ArgumentNullException>();
@@ -209,25 +207,25 @@ public class ExceptionRobustnessTests : TestBase
         // Arrange - 使用生成的事件类型，确保 OnException 为 null
         var originalHandler = TestEvents.OnException;
         TestEvents.OnException = null;
-        
+
         try
         {
             var handler = new InAction<TestGeneratedEvent>((in TestGeneratedEvent evt) =>
             {
                 throw new InvalidOperationException("Test exception");
             });
-            
+
             var token = TestEvents.SubscribeTestGeneratedEvent(handler);
-            
+
             // Act - 异常应该被静默吞掉（因为 OnException 为 null）
             var exception = Record.Exception(() =>
             {
                 TestEvents.PublishTestGeneratedEvent("test", 42);
             });
-            
+
             // Assert - 异常不应该抛出
             exception.Should().BeNull();
-            
+
             // Cleanup
             token.Dispose();
         }
@@ -245,29 +243,29 @@ public class ExceptionRobustnessTests : TestBase
         IEvent? receivedEvent = null;
         System.Delegate? receivedHandler = null;
         Exception? receivedException = null;
-        
+
         TestEvents.OnException = (evt, handler, ex) =>
         {
             receivedEvent = evt;
             receivedHandler = handler;
             receivedException = ex;
         };
-        
+
         try
         {
             var handler = new InAction<TestGeneratedEvent>((in TestGeneratedEvent evt) =>
             {
                 throw new InvalidOperationException("Test exception");
             });
-            
+
             var token = TestEvents.SubscribeTestGeneratedEvent(handler);
-            
+
             // Act
             var exception = Record.Exception(() =>
             {
                 TestEvents.PublishTestGeneratedEvent("test", 42);
             });
-            
+
             // Assert - 异常不应该抛出，但应该被转发到 OnException
             exception.Should().BeNull();
             receivedEvent.Should().NotBeNull();
@@ -278,7 +276,7 @@ public class ExceptionRobustnessTests : TestBase
             receivedHandler.Should().Be(handler);
             receivedException.Should().BeOfType<InvalidOperationException>();
             receivedException!.Message.Should().Be("Test exception");
-            
+
             // Cleanup
             token.Dispose();
         }
@@ -294,12 +292,12 @@ public class ExceptionRobustnessTests : TestBase
         // Arrange - 使用生成的事件类型
         var originalHandler = TestEvents.OnException;
         var receivedExceptions = new List<Exception>();
-        
+
         TestEvents.OnException = (evt, handler, ex) =>
         {
             receivedExceptions.Add(ex);
         };
-        
+
         try
         {
             var handler1 = new InAction<TestGeneratedEvent>((in TestGeneratedEvent evt) =>
@@ -314,24 +312,24 @@ public class ExceptionRobustnessTests : TestBase
             {
                 throw new NotSupportedException("Handler 3 exception");
             });
-            
+
             var token1 = TestEvents.SubscribeTestGeneratedEvent(handler1);
             var token2 = TestEvents.SubscribeTestGeneratedEvent(handler2);
             var token3 = TestEvents.SubscribeTestGeneratedEvent(handler3);
-            
+
             // Act
             var exception = Record.Exception(() =>
             {
                 TestEvents.PublishTestGeneratedEvent("test", 42);
             });
-            
+
             // Assert - 每个异常都应该被转发到 OnException
             exception.Should().BeNull();
             receivedExceptions.Should().HaveCount(3);
             receivedExceptions.Should().Contain(ex => ex is InvalidOperationException);
             receivedExceptions.Should().Contain(ex => ex is ArgumentException);
             receivedExceptions.Should().Contain(ex => ex is NotSupportedException);
-            
+
             // Cleanup
             token1.Dispose();
             token2.Dispose();
@@ -352,12 +350,12 @@ public class ExceptionRobustnessTests : TestBase
         var handler2Invoked = false;
         var handler3Invoked = false;
         var exceptionCount = 0;
-        
+
         TestEvents.OnException = (evt, handler, ex) =>
         {
             exceptionCount++;
         };
-        
+
         try
         {
             var handler1 = new InAction<TestGeneratedEvent>((in TestGeneratedEvent evt) =>
@@ -373,24 +371,24 @@ public class ExceptionRobustnessTests : TestBase
             {
                 handler3Invoked = true;
             });
-            
+
             var token1 = TestEvents.SubscribeTestGeneratedEvent(handler1);
             var token2 = TestEvents.SubscribeTestGeneratedEvent(handler2);
             var token3 = TestEvents.SubscribeTestGeneratedEvent(handler3);
-            
+
             // Act
             var exception = Record.Exception(() =>
             {
                 TestEvents.PublishTestGeneratedEvent("test", 42);
             });
-            
+
             // Assert - 所有 handler 都应该被调用，即使第一个抛异常
             exception.Should().BeNull();
             handler1Invoked.Should().BeTrue();
             handler2Invoked.Should().BeTrue();
             handler3Invoked.Should().BeTrue();
             exceptionCount.Should().Be(1); // 只有一个异常
-            
+
             // Cleanup
             token1.Dispose();
             token2.Dispose();
@@ -408,40 +406,40 @@ public class ExceptionRobustnessTests : TestBase
         // Arrange - 测试类级别的 OnException 和全局的 EventDispatcher.OnException 都会被调用
         var originalClassHandler = TestEvents.OnException;
         var originalGlobalHandler = EventDispatcher.OnException;
-        
+
         var classHandlerCalled = false;
         var globalHandlerCalled = false;
-        
+
         TestEvents.OnException = (evt, handler, ex) =>
         {
             classHandlerCalled = true;
         };
-        
+
         EventDispatcher.OnException = (evt, handler, ex) =>
         {
             globalHandlerCalled = true;
         };
-        
+
         try
         {
             var handler = new InAction<TestGeneratedEvent>((in TestGeneratedEvent evt) =>
             {
                 throw new InvalidOperationException("Test exception");
             });
-            
+
             var token = TestEvents.SubscribeTestGeneratedEvent(handler);
-            
+
             // Act
             var exception = Record.Exception(() =>
             {
                 TestEvents.PublishTestGeneratedEvent("test", 42);
             });
-            
+
             // Assert - 类级别的和全局的 OnException 都应该被调用
             exception.Should().BeNull();
             classHandlerCalled.Should().BeTrue();
             globalHandlerCalled.Should().BeTrue();
-            
+
             // Cleanup
             token.Dispose();
         }

@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -17,13 +15,13 @@ public class InActionTests : TestBase
             receivedEvent = evt;
         });
         var token = EventDispatcher<TestEventWithData>.Subscribe(handler);
-        
+
         // Act
         EventDispatcher<TestEventWithData>.Publish(in originalEvent);
-        
+
         // Assert
         receivedEvent.Should().Be(originalEvent);
-        
+
         // Cleanup
         token.Dispose();
     }
@@ -39,13 +37,13 @@ public class InActionTests : TestBase
             capturedValue = externalValue;
         });
         var token = EventDispatcher<TestEvent>.Subscribe(handler);
-        
+
         // Act
         EventDispatcher<TestEvent>.Publish(new TestEvent());
-        
+
         // Assert
         capturedValue.Should().Be(externalValue);
-        
+
         // Cleanup
         token.Dispose();
     }
@@ -67,17 +65,17 @@ public class InActionTests : TestBase
         {
             callOrder.Add(3);
         });
-        
+
         var token1 = EventDispatcher<OrderTestEvent>.Subscribe(handler1);
         var token2 = EventDispatcher<OrderTestEvent>.Subscribe(handler2);
         var token3 = EventDispatcher<OrderTestEvent>.Subscribe(handler3);
-        
+
         // Act
         EventDispatcher<OrderTestEvent>.Publish(new OrderTestEvent(0));
-        
+
         // Assert - 订阅顺序应该与调用顺序一致
         callOrder.Should().Equal(1, 2, 3);
-        
+
         // Cleanup
         token1.Dispose();
         token2.Dispose();
@@ -91,7 +89,7 @@ public class InActionTests : TestBase
         var handler1Invoked = false;
         var handler2Invoked = false;
         var handler3Invoked = false;
-        
+
         var handler1 = new InAction<IsolatedTestEvent>((in IsolatedTestEvent evt) =>
         {
             handler1Invoked = true;
@@ -105,24 +103,24 @@ public class InActionTests : TestBase
         {
             handler3Invoked = true;
         });
-        
+
         var token1 = EventDispatcher<IsolatedTestEvent>.Subscribe(handler1);
         var token2 = EventDispatcher<IsolatedTestEvent>.Subscribe(handler2);
         var token3 = EventDispatcher<IsolatedTestEvent>.Subscribe(handler3);
-        
+
         // Act - 异常不再抛出，而是通过 OnException 转发
         var exception = Record.Exception(() =>
         {
             EventDispatcher<IsolatedTestEvent>.Publish(new IsolatedTestEvent(1));
         });
-        
+
         // Assert - 所有处理器都应该被调用，即使第一个抛异常
         // 异常不会抛出，发布者逻辑不受影响
         handler1Invoked.Should().BeTrue();
         handler2Invoked.Should().BeTrue();
         handler3Invoked.Should().BeTrue();
         exception.Should().BeNull(); // 异常不再抛出
-        
+
         // Cleanup
         token1.Dispose();
         token2.Dispose();
@@ -139,16 +137,16 @@ public class InActionTests : TestBase
             throw expectedException;
         });
         var token = EventDispatcher<SingleExceptionTestEvent>.Subscribe(handler);
-        
+
         // Act - 异常不再抛出，而是通过 OnException 转发
         var exception = Record.Exception(() =>
         {
             EventDispatcher<SingleExceptionTestEvent>.Publish(new SingleExceptionTestEvent(1));
         });
-        
+
         // Assert - 异常不再抛出，发布者逻辑不受影响
         exception.Should().BeNull();
-        
+
         // Cleanup
         token.Dispose();
     }

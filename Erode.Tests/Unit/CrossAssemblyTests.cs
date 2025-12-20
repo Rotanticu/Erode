@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -17,10 +15,10 @@ public class CrossAssemblyTests
         // 测试 internal 接口生成的代码是否保持 internal
         // 在同一程序集中，internal 类型应该可见
         var internalEventsType = typeof(InternalEvents);
-        
+
         // Assert
         internalEventsType.Should().NotBeNull();
-        
+
         // 验证可以访问 internal 类型的方法
         var publishMethod = internalEventsType.GetMethod("PublishInternalTestEvent");
         publishMethod.Should().NotBeNull();
@@ -32,7 +30,7 @@ public class CrossAssemblyTests
         // Arrange & Act
         // 测试 public 接口生成的代码应该是 public
         var testEventsType = typeof(TestEvents);
-        
+
         // Assert
         testEventsType.Should().NotBeNull();
         testEventsType.IsPublic.Should().BeTrue();
@@ -45,14 +43,14 @@ public class CrossAssemblyTests
         // 验证生成的代码在同一程序集中可访问
         var invoked = false;
         var handler = new InAction<TestGeneratedEvent>((in TestGeneratedEvent evt) => { invoked = true; });
-        
+
         // Act
         var token = TestEvents.SubscribeTestGeneratedEvent(handler);
         TestEvents.PublishTestGeneratedEvent("test", 42);
-        
+
         // Assert
         invoked.Should().BeTrue();
-        
+
         // Cleanup
         token.Dispose();
     }
@@ -63,7 +61,7 @@ public class CrossAssemblyTests
         // Arrange & Act
         // 验证生成的事件类型可访问
         var eventType = typeof(TestGeneratedEvent);
-        
+
         // Assert
         eventType.Should().NotBeNull();
         eventType.IsPublic.Should().BeTrue();

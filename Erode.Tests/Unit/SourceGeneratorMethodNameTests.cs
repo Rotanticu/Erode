@@ -1,5 +1,3 @@
-using Erode;
-using Erode.Tests.Helpers;
 using FluentAssertions;
 
 namespace Erode.Tests.Unit;
@@ -17,18 +15,18 @@ public class SourceGeneratorMethodNameTests
         // Arrange & Act
         // 使用 IPlayerEvents 接口，方法名是 PublishPlayerMovedEvent
         // 应该生成 PlayerMovedEvent 事件类型
-        
+
         // 验证事件类型存在
         var eventTypeName = "PlayerMovedEvent";
         var eventType = Type.GetType($"Erode.Tests.Helpers.{eventTypeName}, Erode.Tests");
-        
+
         // 如果类型不存在，尝试在当前程序集中查找
         if (eventType == null)
         {
             eventType = typeof(PlayerEvents).Assembly.GetTypes()
                 .FirstOrDefault(t => t.Name == eventTypeName);
         }
-        
+
         // Assert
         eventType.Should().NotBeNull($"事件类型 {eventTypeName} 应该被生成");
         eventType!.IsValueType.Should().BeTrue();
@@ -43,10 +41,10 @@ public class SourceGeneratorMethodNameTests
         var eventTypeName = "PlayerMovedEvent";
         var eventType = typeof(PlayerEvents).Assembly.GetTypes()
             .FirstOrDefault(t => t.Name == eventTypeName);
-        
+
         // Assert
         eventType.Should().NotBeNull();
-        
+
         // 验证发布方法存在
         var publishMethod = typeof(PlayerEvents).GetMethod("PublishPlayerMovedEvent");
         publishMethod.Should().NotBeNull();
@@ -59,7 +57,7 @@ public class SourceGeneratorMethodNameTests
         // Arrange & Act
         // 测试方法名 PublishTestGeneratedEvent 应该生成 TestGeneratedEvent
         var eventType = typeof(TestGeneratedEvent);
-        
+
         // Assert
         eventType.Name.Should().Be("TestGeneratedEvent");
         eventType.IsValueType.Should().BeTrue();
@@ -70,7 +68,7 @@ public class SourceGeneratorMethodNameTests
     {
         // Arrange & Act
         var method = typeof(TestEvents).GetMethod("PublishTestGeneratedEvent");
-        
+
         // Assert
         method.Should().NotBeNull();
         method!.Name.Should().Be("PublishTestGeneratedEvent");
@@ -81,7 +79,7 @@ public class SourceGeneratorMethodNameTests
     {
         // Arrange & Act
         var method = typeof(TestEvents).GetMethod("SubscribeTestGeneratedEvent");
-        
+
         // Assert
         method.Should().NotBeNull();
         method!.Name.Should().Be("SubscribeTestGeneratedEvent");
@@ -93,7 +91,7 @@ public class SourceGeneratorMethodNameTests
         // Arrange & Act
         var eventType = typeof(TestGeneratedEvent);
         var properties = eventType.GetProperties();
-        
+
         // Assert - 应该有两个属性：Message 和 Value（PascalCase）
         properties.Should().HaveCount(2);
         properties.Should().Contain(p => p.Name == "Message");
@@ -105,7 +103,7 @@ public class SourceGeneratorMethodNameTests
     {
         // Arrange & Act
         var method = typeof(TestEvents).GetMethod("PublishTestGeneratedEvent");
-        
+
         // Assert - 参数名应该是 camelCase（message, value）
         method.Should().NotBeNull();
         var parameters = method!.GetParameters();
@@ -122,7 +120,7 @@ public class SourceGeneratorMethodNameTests
         var eventTypeName = "PlayerMovedEvent";
         var eventType = typeof(PlayerEvents).Assembly.GetTypes()
             .FirstOrDefault(t => t.Name == eventTypeName);
-        
+
         // Assert
         eventType.Should().NotBeNull();
         // 验证事件名首字母大写

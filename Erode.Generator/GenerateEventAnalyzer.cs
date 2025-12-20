@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Immutable;
-using System.Linq;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using System;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace Erode.Generator;
 
@@ -31,7 +30,7 @@ public class GenerateEventAnalyzer : DiagnosticAnalyzer
     {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
-        
+
         // 注册方法声明的语法节点操作
         context.RegisterSyntaxNodeAction(AnalyzeMethod, SyntaxKind.MethodDeclaration);
     }
@@ -39,15 +38,15 @@ public class GenerateEventAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeMethod(SyntaxNodeAnalysisContext context)
     {
         var methodSyntax = (MethodDeclarationSyntax)context.Node;
-        
+
         // 检查是否有 [GenerateEvent] 特性
         var hasAttribute = methodSyntax.AttributeLists
             .SelectMany(al => al.Attributes)
             .Any(attr =>
             {
                 var name = attr.Name.ToString();
-                return name == "GenerateEvent" || 
-                       name == "GenerateEventAttribute" || 
+                return name == "GenerateEvent" ||
+                       name == "GenerateEventAttribute" ||
                        name.EndsWith(".GenerateEvent") ||
                        name.EndsWith(".GenerateEventAttribute");
             });
@@ -57,7 +56,7 @@ public class GenerateEventAnalyzer : DiagnosticAnalyzer
 
         var semanticModel = context.SemanticModel;
         var methodSymbol = semanticModel.GetDeclaredSymbol(methodSyntax) as IMethodSymbol;
-        
+
         if (methodSymbol == null)
             return;
 
@@ -110,7 +109,7 @@ public class GenerateEventAnalyzer : DiagnosticAnalyzer
 
         // 从方法名中提取并验证事件名
         var eventNameValidation = EventValidationHelper.ValidateAndNormalizeEventName(methodSymbol.Name, context.Compilation, out var isKeyword);
-        
+
         if (!eventNameValidation.IsValid)
         {
             Diagnostic? diagnostic = null;
@@ -151,7 +150,7 @@ public class GenerateEventAnalyzer : DiagnosticAnalyzer
             {
                 eventNameForDiagnostic = eventNameValidation.CleanedEventName;
             }
-            
+
             var diagnostic = Diagnostic.Create(
                 EventDiagnostics.Warning_KeywordEventName,
                 location,
