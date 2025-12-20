@@ -135,24 +135,30 @@ public sealed class EventDispatcher<TEvent> : IDispatcher
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void PublishInternal(in TEvent eventData, System.Action<IEvent, System.Delegate, System.Exception>? onException)
     {
-        // 1. 无锁获取当前数组引用（引用赋值是原子的）
-        var localArray = _handlerArray;
-
-        // 2. 转换为 Span 享受最高性能迭代，零分配
-        var span = localArray.AsSpan();
-
+        var span = _handlerArray.AsSpan();
         for (int i = 0; i < span.Length; i++)
         {
-            try
-            {
-                span[i].Handler.Invoke(in eventData);
-            }
-            catch (Exception ex)
-            {
-                // 通过回调转发异常，不在分发路径内抛出
-                // 这保证了发布者逻辑的健壮性和 0 GC（在正常上报流程下）
-                onException?.Invoke(eventData, span[i].Handler, ex);
-            }
+            // 关键：调用一个专门处理执行的方法
+            InvokeHandler(span[i], in eventData, onException);
+        }
+    }
+
+    /// <summary>
+    /// 调用单个 handler，处理异常。
+    /// 提取到单独方法以优化主循环：主循环现在没有任何 try-catch 直接干扰，
+    /// JIT 可以放心地把 i 放入寄存器，并彻底消除边界检查。
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)] // 尝试内联，如果内联失败反而对热点循环有利
+    private static void InvokeHandler(in HandlerEntry entry, in TEvent eventData, System.Action<IEvent, System.Delegate, System.Exception>? onException)
+    {
+        try
+        {
+            entry.Handler.Invoke(in eventData);
+        }
+        catch (System.Exception ex)
+        {
+            onException?.Invoke(eventData, entry.Handler, ex);
+            EventDispatcher.OnException?.Invoke(eventData, entry.Handler, ex);
         }
     }
 
