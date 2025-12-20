@@ -8,6 +8,7 @@
     <EnforceExtendedAnalyzerRules>false</EnforceExtendedAnalyzerRules>
     <NoWarn>$(NoWarn);RS2007;RS2008</NoWarn>
     <EnableAnalyzerReleaseTracking>false</EnableAnalyzerReleaseTracking>
+    <Version>0.8.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

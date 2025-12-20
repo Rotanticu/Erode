@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Version>0.8.0</Version>
   </PropertyGroup>
 
   <!-- Erode 项目不需要 Source Generator，因为 Events 类由用户项目生成 -->
