@@ -205,9 +205,31 @@ PlayerEvents.PublishPlayerMovedEvent(10, 20);
 
 ## 性能
 
-Erode 以 Zero-GC 和确定性分发为核心目标。
-基准测试（BenchmarkDotNet）正在完善中。
+核心性能对比 (100 Subscribers)
+```mermaid
 
+xychart-beta
+    title "执行耗时对比 (Latency in ns)"
+    x-axis ["Erode", "Prism"]
+    y-axis "Nanoseconds" 0 --> 25000
+    bar [1149.71, 23889.73]
+```
+```mermaid
+
+xychart-beta
+    title "内存分配对比 (Allocated in Bytes)"
+    x-axis ["Erode", "Prism"]
+    y-axis "Bytes" 0 --> 20000
+    bar [0, 19096]
+```
+```mermaid
+xychart-beta
+    title "性能扩展性 (Mean Latency vs Subscriber Count)"
+    x-axis ["0", "1", "10", "100"]
+    y-axis "Mean (ns)" 0 --> 25000
+    line [51.58, 57.73, 155.02, 1149.71]
+    line [66.64, 326.26, 2555.70, 23889.73]
+```
 ---
 
 ## 要求
