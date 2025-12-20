@@ -1,9 +1,10 @@
 namespace Erode;
 
 /// <summary>
-/// 内部接口，用于抽象泛型调度器，方便 EventDispatcher 进行统一管理和查找。
+/// 调度器接口，用于抽象泛型调度器，方便 EventDispatcher 进行统一管理和查找。
+/// 公开接口，供 SubscriptionToken 使用。
 /// </summary>
-internal interface IDispatcher
+public interface IDispatcher
 {
     /// <summary>
     /// 抽象方法，用于处理通用退订逻辑

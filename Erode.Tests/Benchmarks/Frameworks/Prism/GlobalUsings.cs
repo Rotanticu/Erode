@@ -4,4 +4,4 @@ global using BenchmarkDotNet.Jobs;
 global using Erode.Tests.Benchmarks.Common;
 global using Erode.Tests.Helpers;
 global using Prism.Events;
-
+global using Erode;

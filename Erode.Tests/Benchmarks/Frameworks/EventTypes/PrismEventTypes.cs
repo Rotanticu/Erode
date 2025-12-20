@@ -16,6 +16,29 @@ public static class PrismEventTypes
     {
     }
 
+    // ========== PrismSignalEvent 测试隔离专用事件类型 ==========
+
+    /// <summary>
+    /// 无订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismSignalEvent_Empty : PubSubEvent<PrismSignalEventData>
+    {
+    }
+
+    /// <summary>
+    /// 多订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismSignalEvent_Multi : PubSubEvent<PrismSignalEventData>
+    {
+    }
+
+    /// <summary>
+    /// 单订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismSignalEvent_Single : PubSubEvent<PrismSignalEventData>
+    {
+    }
+
     /// <summary>
     /// 单参数事件
     /// </summary>
@@ -26,6 +49,29 @@ public static class PrismEventTypes
     public class PrismSingleValueEventData
     {
         public long Value { get; set; }
+    }
+
+    // ========== PrismSingleValueEvent 测试隔离专用事件类型 ==========
+
+    /// <summary>
+    /// 无订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismSingleValueEvent_Empty : PubSubEvent<PrismSingleValueEventData>
+    {
+    }
+
+    /// <summary>
+    /// 多订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismSingleValueEvent_Multi : PubSubEvent<PrismSingleValueEventData>
+    {
+    }
+
+    /// <summary>
+    /// 单订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismSingleValueEvent_Single : PubSubEvent<PrismSingleValueEventData>
+    {
     }
 
     /// <summary>
@@ -46,6 +92,29 @@ public static class PrismEventTypes
         public int Defense { get; set; }
     }
 
+    // ========== PrismCombatDataEvent 测试隔离专用事件类型 ==========
+
+    /// <summary>
+    /// 无订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismCombatDataEvent_Empty : PubSubEvent<PrismCombatDataEventData>
+    {
+    }
+
+    /// <summary>
+    /// 多订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismCombatDataEvent_Multi : PubSubEvent<PrismCombatDataEventData>
+    {
+    }
+
+    /// <summary>
+    /// 单订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismCombatDataEvent_Single : PubSubEvent<PrismCombatDataEventData>
+    {
+    }
+
     /// <summary>
     /// 混合业务数据事件
     /// </summary>
@@ -61,6 +130,29 @@ public static class PrismEventTypes
         public Common.SharedTestTypes.PlayerInfo Player { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public Guid SessionId { get; set; }
+    }
+
+    // ========== PrismMixedBusinessDataEvent 测试隔离专用事件类型 ==========
+
+    /// <summary>
+    /// 无订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismMixedBusinessDataEvent_Empty : PubSubEvent<PrismMixedBusinessDataEventData>
+    {
+    }
+
+    /// <summary>
+    /// 多订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismMixedBusinessDataEvent_Multi : PubSubEvent<PrismMixedBusinessDataEventData>
+    {
+    }
+
+    /// <summary>
+    /// 单订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismMixedBusinessDataEvent_Single : PubSubEvent<PrismMixedBusinessDataEventData>
+    {
     }
 
     /// <summary>
@@ -92,6 +184,29 @@ public static class PrismEventTypes
         public List<int> Tags { get; set; } = new();
         public Dictionary<string, int> Metadata { get; set; } = new();
         public Common.SharedTestTypes.PlayerInfo Player { get; set; } = null!;
+    }
+
+    // ========== PrismHeavyPayloadEvent 测试隔离专用事件类型 ==========
+
+    /// <summary>
+    /// 无订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismHeavyPayloadEvent_Empty : PubSubEvent<PrismHeavyPayloadEventData>
+    {
+    }
+
+    /// <summary>
+    /// 多订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismHeavyPayloadEvent_Multi : PubSubEvent<PrismHeavyPayloadEventData>
+    {
+    }
+
+    /// <summary>
+    /// 单订阅者测试专用事件（静态隔离）
+    /// </summary>
+    public class PrismHeavyPayloadEvent_Single : PubSubEvent<PrismHeavyPayloadEventData>
+    {
     }
 }
 

@@ -1,24 +1,38 @@
 # 强制结束所有 Erode.Tests 基准测试相关进程
 # 用于解决文件锁定问题
 
-Write-Host "正在查找 Erode.Tests 相关进程..." -ForegroundColor Yellow
+param(
+    [int]$ExcludePid = 0  # 要排除的进程 ID（通常是调用此脚本的进程）
+)
+
+$currentPid = $PID
+if ($ExcludePid -eq 0) {
+    $ExcludePid = $currentPid
+}
+
+Write-Host "正在查找 Erode.Tests 相关进程（排除 PID: $ExcludePid）..." -ForegroundColor Yellow
 
 # 方法1: 通过进程名查找
-$processesByName = Get-Process -Name "Erode.Tests" -ErrorAction SilentlyContinue
+$processesByName = Get-Process -Name "Erode.Tests" -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $ExcludePid }
 
 # 方法2: 通过路径查找（更精确）
 $processesByPath = Get-Process | Where-Object {
-    $_.Path -and $_.Path -like "*Erode*Tests*"
+    $_.Path -and $_.Path -like "*Erode*Tests*" -and $_.Id -ne $ExcludePid
 } -ErrorAction SilentlyContinue
 
 # 方法3: 查找 dotnet 进程，检查命令行参数
-$dotnetProcesses = Get-Process -Name "dotnet" -ErrorAction SilentlyContinue | Where-Object {
-    try {
-        $cmdLine = (Get-CimInstance Win32_Process -Filter "ProcessId = $($_.Id)").CommandLine
-        $cmdLine -and ($cmdLine -like "*Erode.Tests*" -or $cmdLine -like "*Benchmarks*")
-    }
-    catch {
-        $false
+$dotnetProcesses = @()
+Get-Process -Name "dotnet" -ErrorAction SilentlyContinue | ForEach-Object {
+    if ($_.Id -ne $ExcludePid) {
+        try {
+            $cmdLine = (Get-CimInstance Win32_Process -Filter "ProcessId = $($_.Id)").CommandLine
+            if ($cmdLine -and ($cmdLine -like "*Erode.Tests*" -or $cmdLine -like "*Benchmarks*" -or $cmdLine -like "*Erode*Tests*")) {
+                $dotnetProcesses += $_
+            }
+        }
+        catch {
+            # 忽略错误
+        }
     }
 }
 
@@ -28,8 +42,8 @@ if ($processesByName) { $allProcesses += $processesByName }
 if ($processesByPath) { $allProcesses += $processesByPath }
 if ($dotnetProcesses) { $allProcesses += $dotnetProcesses }
 
-# 去重（按 PID）
-$uniqueProcesses = $allProcesses | Sort-Object -Property Id -Unique
+# 去重（按 PID）并排除当前进程
+$uniqueProcesses = $allProcesses | Where-Object { $_.Id -ne $ExcludePid } | Sort-Object -Property Id -Unique
 
 if ($uniqueProcesses.Count -eq 0) {
     Write-Host "未找到相关进程" -ForegroundColor Green
@@ -67,12 +81,12 @@ Start-Sleep -Seconds 2
 # 检查是否还有残留进程，强制结束
 $remaining = @()
 try {
-    $remaining += Get-Process -Name "Erode.Tests" -ErrorAction SilentlyContinue
+    $remaining += Get-Process -Name "Erode.Tests" -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $ExcludePid }
 }
 catch { }
 
 $remaining += Get-Process | Where-Object {
-    $_.Path -and $_.Path -like "*Erode*Tests*"
+    $_.Path -and $_.Path -like "*Erode*Tests*" -and $_.Id -ne $ExcludePid
 } -ErrorAction SilentlyContinue
 
 if ($remaining) {

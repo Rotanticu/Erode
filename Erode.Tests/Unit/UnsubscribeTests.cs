@@ -24,8 +24,8 @@ public class UnsubscribeTests : TestBase
     public void Unsubscribe_WithInvalidToken_DoesNotThrow()
     {
         // Arrange
-        // 创建一个无效的 token（ID 为 0，使用空的 UnsubscribeAction）
-        var invalidToken = new SubscriptionToken(0, _ => { });
+        // 创建一个无效的 token（ID 为 0，使用有效的 Dispatcher）
+        var invalidToken = new SubscriptionToken(0, EventDispatcher<TestEvent>.Instance);
 
         // Act & Assert
         var exception = Record.Exception(() => invalidToken.Dispose());
@@ -41,8 +41,8 @@ public class UnsubscribeTests : TestBase
         var realToken = EventDispatcher<TestEvent>.Subscribe(handler);
         realToken.Dispose(); // 先退订，使 token 无效
 
-        // 使用一个不存在的 ID，但使用有效的 UnsubscribeAction
-        var nonExistentToken = new SubscriptionToken(999999, realToken.UnsubscribeAction);
+        // 使用一个不存在的 ID，但使用有效的 Dispatcher
+        var nonExistentToken = new SubscriptionToken(999999, realToken.Dispatcher);
 
         // Act & Assert
         var exception = Record.Exception(() => nonExistentToken.Dispose());

@@ -105,16 +105,8 @@ public sealed class EventDispatcher<TEvent> : IDispatcher
             _handlerArray = newArray;
         }
 
-        // 直接传入 Unsubscribe 方法的委托，避免 Type 查找开销
-        return new SubscriptionToken(id, Unsubscribe);
-    }
-
-    /// <summary>
-    /// 退订方法（用于创建 SubscriptionToken 的委托）
-    /// </summary>
-    private void Unsubscribe(long id)
-    {
-        ((IDispatcher)this).Unsubscribe(id);
+        // 直接传入 IDispatcher 引用，避免委托对象的创建，实现真正的 0 分配
+        return new SubscriptionToken(id, _instance);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ namespace Erode.Tests.Benchmarks.Frameworks.Prism;
 
 [SimpleJob(RuntimeMoniker.Net80)]
 [MemoryDiagnoser]
+[DisassemblyDiagnoser]
 public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
 {
     private static readonly Consumer Consumer = new Consumer();
@@ -25,11 +26,30 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     private Frameworks.EventTypes.PrismEventTypes.PrismSignalEvent _singleSubscriberPrismEvent = null!;
     private Action<Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData> _singleSubscriberPrismHandler = null!;
 
+    // 缓存的 Handler 委托（在 GlobalSetup 中预先创建，避免每次调用都创建新实例）
+    private InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent> _warmupErodeHandler = null!;
+    private InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>[] _erodeMultiHandlers = Array.Empty<InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>>();
+    private Action<Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData>[] _prismMultiHandlers = Array.Empty<Action<Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData>>();
+    private InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single> _singleSubscriberErodeHandler = null!;
+
     [GlobalSetup]
     public void Setup()
     {
         TestCleanupHelper.CleanupAll();
         HandlerHelpers.ResetSink();
+
+        // 预先创建所有 Handler 委托（避免每次调用都创建新实例，消除对象分配）
+        _warmupErodeHandler = HandlerHelpers.CreateSignalEventHandler(0);
+        _singleSubscriberErodeHandler = HandlerHelpers.CreateSignalEventSingleHandler(0);
+        
+        // 预先创建多订阅者所需的 Handler 委托（最多 100 个）
+        _erodeMultiHandlers = new InAction<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>[SubscriberCount];
+        _prismMultiHandlers = new Action<Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData>[SubscriberCount];
+        for (int i = 0; i < SubscriberCount; i++)
+        {
+            _erodeMultiHandlers[i] = HandlerHelpers.CreateSignalEventMultiHandler(i);
+            _prismMultiHandlers[i] = HandlerHelpers.CreatePrismSignalEventHandler(i);
+        }
 
         // 预热 Erode
         WarmupErode();
@@ -47,10 +67,10 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     private void WarmupErode()
     {
         var warmupEvent = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent();
-        var warmupToken = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Subscribe(HandlerHelpers.CreateSignalEventHandler(0));
+        var warmupToken = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Subscribe(_warmupErodeHandler);
         for (int i = 0; i < 100; i++)
         {
-            EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Publish(warmupEvent);
+            EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Publish(in warmupEvent);
         }
         warmupToken.Dispose();
         TestCleanupHelper.CleanupAll();
@@ -59,11 +79,12 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
 
     private void SetupMultiSubscribers()
     {
-        // Erode 多订阅者
+        // Erode 多订阅者（使用 SignalEvent_Multi 实现静态隔离）
         _erodeTokens = new SubscriptionToken[SubscriberCount];
         for (int i = 0; i < SubscriberCount; i++)
         {
-            _erodeTokens[i] = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Subscribe(HandlerHelpers.CreateSignalEventHandler(i));
+            // 使用预先创建的委托，避免每次调用都创建新实例
+            _erodeTokens[i] = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>.Subscribe(_erodeMultiHandlers[i]);
         }
 
         // Prism 多订阅者
@@ -71,8 +92,8 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
         _prismEvent = _eventAggregator.GetEvent<Frameworks.EventTypes.PrismEventTypes.PrismSignalEvent>();
         for (int i = 0; i < SubscriberCount; i++)
         {
-            var handlerId = i;
-            var token = _prismEvent.Subscribe(data => HandlerHelpers.CreatePrismSignalEventHandler(handlerId)(data));
+            // 使用预先创建的委托，与 Erode 保持一致，确保公平对比
+            var token = _prismEvent.Subscribe(_prismMultiHandlers[i], ThreadOption.PublisherThread);
             _prismTokens.Add(token);
         }
     }
@@ -87,7 +108,8 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     {
         _singleSubscriberEventAggregator = new global::Prism.Events.EventAggregator();
         _singleSubscriberPrismEvent = _singleSubscriberEventAggregator.GetEvent<Frameworks.EventTypes.PrismEventTypes.PrismSignalEvent>();
-        _singleSubscriberPrismHandler = HandlerHelpers.CreatePrismSignalEventHandler(0);
+        // 使用预先创建的委托（在 Setup 中已创建）
+        _singleSubscriberPrismHandler = _prismMultiHandlers[0];
     }
 
     // ========== 多订阅者发布 ==========
@@ -96,8 +118,8 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     public long Publish_MultiSubscribers_Erode()
     {
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent();
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Publish(evt);
+        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi();
+        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Multi>.Publish(in evt);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -119,9 +141,11 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     [Benchmark]
     public long Publish_NoSubscribers_Erode()
     {
+        // 使用 SignalEvent_Empty 实现静态隔离，确保真正的"无订阅"状态
+        // 不同的事件类型在静态空间中是物理隔离的，无需清理
         HandlerHelpers.ResetSink();
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent();
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Publish(evt);
+        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Empty();
+        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Empty>.Publish(in evt);
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -143,10 +167,12 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     [Benchmark]
     public long Publish_SingleSubscriber_Erode()
     {
+        // 使用 SignalEvent_Single 实现静态隔离
         HandlerHelpers.ResetSink();
-        var token = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Subscribe(HandlerHelpers.CreateSignalEventHandler(0));
-        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent();
-        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent>.Publish(evt);
+        // 使用预先创建的委托，避免每次调用都创建新实例
+        var token = EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single>.Subscribe(_singleSubscriberErodeHandler);
+        var evt = new Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single();
+        EventDispatcher<Frameworks.EventTypes.ErodeEventTypes.SignalEvent_Single>.Publish(in evt);
         token.Dispose();
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
@@ -157,10 +183,10 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
     public long Publish_SingleSubscriber_Prism()
     {
         HandlerHelpers.ResetSink();
-        var token = _singleSubscriberPrismEvent.Subscribe(_singleSubscriberPrismHandler);
+        var token = _singleSubscriberPrismEvent.Subscribe(_singleSubscriberPrismHandler, ThreadOption.PublisherThread);
         var evt = new Frameworks.EventTypes.PrismEventTypes.PrismSignalEventData();
         _singleSubscriberPrismEvent.Publish(evt);
-        token.Dispose();
+        token.Dispose(); // Prism 的 SubscriptionToken 使用 Dispose()
         var result = HandlerHelpers.ReadSink();
         Consumer.Consume(result);
         return result;
@@ -176,7 +202,7 @@ public class ErodeVsPrismSignalEventPublishBenchmarks : BenchmarkBase
 
         foreach (var token in _prismTokens)
         {
-            token.Dispose();
+            token.Dispose(); // Prism 的 SubscriptionToken 使用 Dispose()
         }
         _prismTokens.Clear();
 

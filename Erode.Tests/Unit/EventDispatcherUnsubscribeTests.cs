@@ -59,7 +59,7 @@ public class EventDispatcherUnsubscribeTests : TestBase
         realToken.Dispose();
 
         // 创建一个不存在的 token（使用无效的 ID）
-        var nonExistentToken = new SubscriptionToken(999999, realToken.UnsubscribeAction);
+        var nonExistentToken = new SubscriptionToken(999999, realToken.Dispatcher);
 
         // Act & Assert
         var exception = Record.Exception(() => nonExistentToken.Dispose());

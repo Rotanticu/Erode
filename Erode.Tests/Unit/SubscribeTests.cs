@@ -16,7 +16,7 @@ public class SubscribeTests : TestBase
         // Assert
         token.Should().NotBe(default(SubscriptionToken));
         token.Id.Should().NotBe(0);
-        token.UnsubscribeAction.Should().NotBeNull();
+        token.Dispatcher.Should().NotBeNull();
 
         // Cleanup
         token.Dispose();
@@ -37,9 +37,9 @@ public class SubscribeTests : TestBase
         token1.Id.Should().NotBe(token2.Id);
         token2.Id.Should().NotBe(token3.Id);
         token1.Id.Should().NotBe(token3.Id);
-        token1.UnsubscribeAction.Should().NotBeNull();
-        token2.UnsubscribeAction.Should().NotBeNull();
-        token3.UnsubscribeAction.Should().NotBeNull();
+        token1.Dispatcher.Should().NotBeNull();
+        token2.Dispatcher.Should().NotBeNull();
+        token3.Dispatcher.Should().NotBeNull();
 
         // Cleanup
         token1.Dispose();

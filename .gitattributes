@@ -1,0 +1,29 @@
+# 统一换行符策略
+# 所有文本文件使用 LF（Unix 风格），避免跨平台换行符问题
+* text=auto eol=lf
+
+# 明确指定源代码文件
+*.cs text eol=lf
+*.csproj text eol=lf
+*.sln text eol=lf
+*.slnx text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.txt text eol=lf
+*.ps1 text eol=lf
+*.bat text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# 二进制文件
+*.dll binary
+*.exe binary
+*.pdb binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+
